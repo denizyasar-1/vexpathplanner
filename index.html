@@ -1,396 +1,457 @@
 <!DOCTYPE html>
 <html lang="tr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>VEX Path Planner - Cumulative Fix</title>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #1e1e1e;
-            color: #ccc;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-        }
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #1e1e1e;
+        color: #ccc;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px;
+      }
 
-        h1 { color: #fff; margin-bottom: 5px; }
-        
-        .controls {
-            background: #2d2d2d;
-            padding: 10px 20px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
+      h1 {
+        color: #fff;
+        margin-bottom: 5px;
+      }
 
-        .controls label { font-weight: bold; color: #fff; }
-        .controls input {
-            background: #444; border: 1px solid #555; color: #fff;
-            padding: 5px; border-radius: 4px; width: 60px; text-align: center;
-        }
+      .controls {
+        background: #2d2d2d;
+        padding: 10px 20px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
 
-        .container {
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
+      .controls label {
+        font-weight: bold;
+        color: #fff;
+      }
+      .controls input {
+        background: #444;
+        border: 1px solid #555;
+        color: #fff;
+        padding: 5px;
+        border-radius: 4px;
+        width: 60px;
+        text-align: center;
+      }
 
-        .canvas-wrapper {
-            position: relative;
-            border: 4px solid #444;
-            cursor: crosshair;
-            width: 600px;
-            height: 600px;
-        }
+      .container {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
 
-        canvas { position: absolute; top: 0; left: 0; }
+      .canvas-wrapper {
+        position: relative;
+        border: 4px solid #444;
+        cursor: crosshair;
+        width: 600px;
+        height: 600px;
+      }
 
-        #output-panel {
-            width: 450px;
-            background-color: #2d2d2d;
-            padding: 20px;
-            border-radius: 8px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
+      canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
 
-        textarea {
-            width: 100%;
-            height: 450px;
-            background-color: #111;
-            color: #569cd6; 
-            border: 1px solid #555;
-            padding: 10px;
-            font-family: 'Consolas', 'Courier New', monospace;
-            font-size: 12px;
-            white-space: pre; 
-            resize: none;
-            overflow-x: auto;
-        }
+      #output-panel {
+        width: 450px;
+        background-color: #2d2d2d;
+        padding: 20px;
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
 
-        button {
-            padding: 10px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            cursor: pointer;
-            border-radius: 5px;
-            font-weight: bold;
-        }
+      textarea {
+        width: 100%;
+        height: 450px;
+        background-color: #111;
+        color: #569cd6;
+        border: 1px solid #555;
+        padding: 10px;
+        font-family: "Consolas", "Courier New", monospace;
+        font-size: 12px;
+        white-space: pre;
+        resize: none;
+        overflow-x: auto;
+      }
 
-        button:hover { background-color: #0056b3; }
-        button.clear { background-color: #dc3545; }
-        button.clear:hover { background-color: #a71d2a; }
+      button {
+        padding: 10px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        cursor: pointer;
+        border-radius: 5px;
+        font-weight: bold;
+      }
 
-        .info { font-size: 0.85em; color: #aaa; }
+      button:hover {
+        background-color: #0056b3;
+      }
+      button.clear {
+        background-color: #dc3545;
+      }
+      button.clear:hover {
+        background-color: #a71d2a;
+      }
+
+      .info {
+        font-size: 0.85em;
+        color: #aaa;
+      }
     </style>
-</head>
-<body>
-
+  </head>
+  <body>
     <h1>VEX Ez Template Path Planner (Cumulative)</h1>
-    
+
     <div class="controls">
-        <label for="pointCountInput">Nokta Sayısı:</label>
-        <input type="number" id="pointCountInput" value="7" min="2" max="100" onchange="updateSettings()">
-        
-        <span style="border-left: 1px solid #555; height: 20px; margin: 0 5px;"></span>
-        
-        <label for="speedInput">Hız:</label>
-        <input type="text" id="speedInput" value="DRIVE_SPEED" style="width: 100px;">
+      <label for="pointCountInput">Nokta Sayısı:</label>
+      <input
+        type="number"
+        id="pointCountInput"
+        value="7"
+        min="2"
+        max="100"
+        onchange="updateSettings()"
+      />
+
+      <span
+        style="border-left: 1px solid #555; height: 20px; margin: 0 5px"
+      ></span>
+
+      <label for="speedInput">Hız:</label>
+      <input
+        type="text"
+        id="speedInput"
+        value="DRIVE_SPEED"
+        style="width: 100px"
+      />
     </div>
 
     <div class="container">
-        <div class="canvas-wrapper" id="canvasContainer">
-            <canvas id="fieldCanvas" width="600" height="600"></canvas>
-        </div>
+      <div class="canvas-wrapper" id="canvasContainer">
+        <canvas id="fieldCanvas" width="600" height="600"></canvas>
+      </div>
 
-        <div id="output-panel">
-            <h3>Inertial Sensor Çıktısı</h3>
-            <div class="info">Sağ: 0, Yukarı: -90 (Sürekli Artan/Azalan)</div>
-            <textarea id="outputBox" readonly>// Yolu çizdiğinizde kod burada belirecek...</textarea>
-            <button onclick="copyToClipboard()">Kodu Kopyala</button>
-            <button class="clear" onclick="clearCanvas()">Temizle</button>
-        </div>
+      <div id="output-panel">
+        <h3>Inertial Sensor Çıktısı</h3>
+        <div class="info">Sağ: 0, Yukarı: -90 (Sürekli Artan/Azalan)</div>
+        <textarea id="outputBox" readonly>
+// Yolu çizdiğinizde kod burada belirecek...</textarea
+        >
+        <button onclick="copyToClipboard()">Kodu Kopyala</button>
+        <button class="clear" onclick="clearCanvas()">Temizle</button>
+      </div>
     </div>
 
     <script>
-        // --- AYARLAR ---
-        const canvas = document.getElementById('fieldCanvas');
-        const ctx = canvas.getContext('2d');
-        const outputBox = document.getElementById('outputBox');
-        const pointCountInput = document.getElementById('pointCountInput');
-        const speedInput = document.getElementById('speedInput');
-        
-        // Görsel dosya adı (Kendi dosya adınla aynı olmalı)
-        const bgImage = new Image();
-        bgImage.src = 'field.png'; 
-        
-        const FIELD_SIZE_INCHES = 144;
-        const CANVAS_SIZE = 600;
-        const PIXELS_PER_INCH = CANVAS_SIZE / FIELD_SIZE_INCHES;
+      // --- AYARLAR ---
+      const canvas = document.getElementById("fieldCanvas");
+      const ctx = canvas.getContext("2d");
+      const outputBox = document.getElementById("outputBox");
+      const pointCountInput = document.getElementById("pointCountInput");
+      const speedInput = document.getElementById("speedInput");
 
-        // Origin Offset (Kırmızı Bölge Önü)
-        const OFFSET_X = -48; 
-        const OFFSET_Y = 0; 
+      // Görsel dosya adı (Kendi dosya adınla aynı olmalı)
+      const bgImage = new Image();
+      bgImage.src = "field.png";
 
-        let isDrawing = false;
-        let rawPoints = []; 
+      const FIELD_SIZE_INCHES = 144;
+      const CANVAS_SIZE = 600;
+      const PIXELS_PER_INCH = CANVAS_SIZE / FIELD_SIZE_INCHES;
 
-        bgImage.onload = function() {
-            drawScreen();
-        };
+      // Origin Offset (Kırmızı Bölge Önü)
+      const OFFSET_X = -48;
+      const OFFSET_Y = 0;
 
-        // --- Event Listeners (Mouse Hareketleri) ---
-        canvas.addEventListener('mousedown', (e) => {
-            isDrawing = true;
-            rawPoints = []; 
-            addRawPoint(e);
-        });
+      let isDrawing = false;
+      let rawPoints = [];
 
-        canvas.addEventListener('mousemove', (e) => {
-            if (!isDrawing) return;
-            addRawPoint(e);
-            drawScreen();
-            drawRawPath();
-        });
+      bgImage.onload = function () {
+        drawScreen();
+      };
 
-        canvas.addEventListener('mouseup', () => {
-            isDrawing = false;
-            processPath(); 
-        });
-        
-        canvas.addEventListener('mouseleave', () => {
-            if(isDrawing) {
-                isDrawing = false;
-                processPath();
-            }
-        });
+      // --- Event Listeners (Mouse Hareketleri) ---
+      canvas.addEventListener("mousedown", (e) => {
+        isDrawing = true;
+        rawPoints = [];
+        addRawPoint(e);
+      });
 
-        function updateSettings() {
-            if (rawPoints.length > 0) {
-                processPath(); 
-            }
+      canvas.addEventListener("mousemove", (e) => {
+        if (!isDrawing) return;
+        addRawPoint(e);
+        drawScreen();
+        drawRawPath();
+      });
+
+      canvas.addEventListener("mouseup", () => {
+        isDrawing = false;
+        processPath();
+      });
+
+      canvas.addEventListener("mouseleave", () => {
+        if (isDrawing) {
+          isDrawing = false;
+          processPath();
+        }
+      });
+
+      function updateSettings() {
+        if (rawPoints.length > 0) {
+          processPath();
+        }
+      }
+
+      // --- Temel Çizim Fonksiyonları ---
+      function addRawPoint(e) {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        rawPoints.push({ x, y });
+      }
+
+      function drawScreen() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // Resim yüklenemezse hata vermesin diye kontrol
+        if (bgImage.complete && bgImage.naturalHeight !== 0) {
+          ctx.drawImage(bgImage, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
+        } else {
+          ctx.fillStyle = "#333";
+          ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+        }
+        drawGrid();
+        drawOrigin();
+      }
+
+      function drawGrid() {
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+        ctx.lineWidth = 1;
+        const tileSize = 24 * PIXELS_PER_INCH;
+        for (let i = 1; i < 6; i++) {
+          ctx.beginPath();
+          ctx.moveTo(i * tileSize, 0);
+          ctx.lineTo(i * tileSize, CANVAS_SIZE);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(0, i * tileSize);
+          ctx.lineTo(CANVAS_SIZE, i * tileSize);
+          ctx.stroke();
+        }
+      }
+
+      function drawOrigin() {
+        const originPixelX = CANVAS_SIZE / 2 + OFFSET_X * PIXELS_PER_INCH;
+        const originPixelY = CANVAS_SIZE / 2 - OFFSET_Y * PIXELS_PER_INCH;
+
+        ctx.strokeStyle = "rgba(255, 255, 0, 0.4)";
+        ctx.beginPath();
+        ctx.moveTo(0, originPixelY);
+        ctx.lineTo(CANVAS_SIZE, originPixelY);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(originPixelX, 0);
+        ctx.lineTo(originPixelX, CANVAS_SIZE);
+        ctx.stroke();
+
+        ctx.fillStyle = "yellow";
+        ctx.beginPath();
+        ctx.arc(originPixelX, originPixelY, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "white";
+        ctx.font = "12px Arial";
+        ctx.fillText("(0,0)", originPixelX + 8, originPixelY - 8);
+      }
+
+      function drawRawPath() {
+        if (rawPoints.length < 2) return;
+        ctx.beginPath();
+        ctx.strokeStyle = "#00ff00";
+        ctx.lineWidth = 3;
+        ctx.moveTo(rawPoints[0].x, rawPoints[0].y);
+        for (let i = 1; i < rawPoints.length; i++)
+          ctx.lineTo(rawPoints[i].x, rawPoints[i].y);
+        ctx.stroke();
+      }
+
+      // --- Matematiksel İşlemler ---
+      function processPath() {
+        if (rawPoints.length < 2) return;
+
+        let desiredPoints = parseInt(pointCountInput.value);
+        if (desiredPoints < 2) desiredPoints = 2;
+
+        let totalLength = 0;
+        let lengths = [0];
+
+        for (let i = 0; i < rawPoints.length - 1; i++) {
+          const dx = rawPoints[i + 1].x - rawPoints[i].x;
+          const dy = rawPoints[i + 1].y - rawPoints[i].y;
+          totalLength += Math.sqrt(dx * dx + dy * dy);
+          lengths.push(totalLength);
         }
 
-        // --- Temel Çizim Fonksiyonları ---
-        function addRawPoint(e) {
-            const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            rawPoints.push({x, y});
+        const step = totalLength / (desiredPoints - 1);
+        let finalPoints = [];
+        finalPoints.push(rawPoints[0]);
+
+        for (let k = 1; k < desiredPoints - 1; k++) {
+          const targetDist = k * step;
+          let index = 0;
+          while (lengths[index + 1] < targetDist) index++;
+
+          const segmentLen = lengths[index + 1] - lengths[index];
+          const fraction = (targetDist - lengths[index]) / segmentLen;
+          const p1 = rawPoints[index];
+          const p2 = rawPoints[index + 1];
+
+          finalPoints.push({
+            x: p1.x + (p2.x - p1.x) * fraction,
+            y: p1.y + (p2.y - p1.y) * fraction,
+          });
+        }
+        finalPoints.push(rawPoints[rawPoints.length - 1]);
+
+        drawScreen();
+
+        ctx.beginPath();
+        ctx.strokeStyle = "cyan";
+        ctx.lineWidth = 2;
+        ctx.moveTo(finalPoints[0].x, finalPoints[0].y);
+        for (let p of finalPoints) ctx.lineTo(p.x, p.y);
+        ctx.stroke();
+
+        ctx.fillStyle = "red";
+        for (let p of finalPoints) {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+          ctx.fill();
         }
 
-        function drawScreen() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            // Resim yüklenemezse hata vermesin diye kontrol
-            if (bgImage.complete && bgImage.naturalHeight !== 0) {
-                ctx.drawImage(bgImage, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
-            } else {
-                ctx.fillStyle = "#333";
-                ctx.fillRect(0,0, CANVAS_SIZE, CANVAS_SIZE);
-            }
-            drawGrid();
-            drawOrigin();
+        generateFormattedOutput(finalPoints);
+      }
+
+      function getCoordinatesInches(point) {
+        let pixelDX = point.x - CANVAS_SIZE / 2;
+        let pixelDY = CANVAS_SIZE / 2 - point.y;
+
+        // VEX Sahanın Standart Koordinatları
+        let inchesX = pixelDX / PIXELS_PER_INCH - OFFSET_X;
+        let inchesY = pixelDY / PIXELS_PER_INCH - OFFSET_Y;
+
+        return { x: inchesX, y: inchesY };
+      }
+
+      // --- YENİ AÇI HESAPLAMA MANTIĞI ---
+      // Sadece iki nokta arasındaki ham açıyı verir.
+      // İstenen: Sağ=0, Yukarı=-90, Sol=180/-180, Aşağı=90
+      function calculateRawHeading(p1, p2) {
+        const c1 = getCoordinatesInches(p1);
+        const c2 = getCoordinatesInches(p2);
+
+        const dy = c2.y - c1.y; // Yukarı pozitif
+        const dx = c2.x - c1.x; // Sağ pozitif
+
+        // Math.atan2(y,x) standartı: Sağ=0, Yukarı=90, Sol=180, Aşağı=-90
+        let mathAngleRad = Math.atan2(dy, dx);
+        let mathAngleDeg = (mathAngleRad * 180) / Math.PI;
+
+        // Bizim isteğimiz: Yukarı -90 olsun.
+        // Matematik açısının negatifini alırsak:
+        // Sağ (0) -> -0 = 0 (OK)
+        // Yukarı (90) -> -90 (OK)
+        // Sol (180) -> -180 (OK)
+        // Aşağı (-90) -> 90 (OK)
+
+        return -mathAngleDeg;
+      }
+
+      function generateFormattedOutput(points) {
+        const speedVar = speedInput.value;
+        let outputText = "chassis.pid_odom_set({\n";
+
+        // Kümülatif (Sürekli) Açı için Değişkenler
+        let previousRawAngle = 0;
+        let continuousAngle = 0;
+
+        for (let i = 0; i < points.length; i++) {
+          let currentP = points[i];
+          let coords = getCoordinatesInches(currentP);
+
+          // --- AÇI HESABI ---
+          let currentRawAngle = 0;
+
+          // 1. Mevcut segmentin ham açısını bul
+          if (i < points.length - 1) {
+            currentRawAngle = calculateRawHeading(currentP, points[i + 1]);
+          } else {
+            // Son nokta için bir önceki açıyı koru
+            currentRawAngle = calculateRawHeading(points[i - 1], currentP);
+          }
+
+          // 2. Kümülatif Hesaplama
+          if (i === 0) {
+            // İlk noktada doğrudan değeri al
+            continuousAngle = currentRawAngle;
+          } else {
+            // Önceki açı ile şimdiki açı arasındaki en kısa yolu bul
+            let delta = currentRawAngle - previousRawAngle;
+
+            // Normalizasyon (Sargı Çözme): Delta'yı -180 ile 180 arasına sıkıştır
+            while (delta > 180) delta -= 360;
+            while (delta < -180) delta += 360;
+
+            // Kümülatif toplama ekle
+            continuousAngle += delta;
+          }
+
+          // Bir sonraki tur için ham açıyı kaydet
+          previousRawAngle = currentRawAngle;
+          // ------------------
+
+          let xFinal = Math.round(coords.x * 100) / 100;
+          let yFinal = -Math.round(coords.y * 100) / 100;
+          // Hesaplanmış sürekli açıyı kullan
+          let angleFinal = Math.round(continuousAngle * 100) / 100;
+
+          const lineData = `{${yFinal}_in, ${xFinal}_in, ${angleFinal}_deg, fwd, ${speedVar}}`;
+
+          if (i === 0) {
+            outputText += "      " + lineData;
+          } else {
+            outputText += ",\n      " + lineData;
+          }
         }
 
-        function drawGrid() {
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-            ctx.lineWidth = 1;
-            const tileSize = 24 * PIXELS_PER_INCH;
-            for(let i=1; i<6; i++) {
-                ctx.beginPath(); ctx.moveTo(i * tileSize, 0); ctx.lineTo(i * tileSize, CANVAS_SIZE); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(0, i * tileSize); ctx.lineTo(CANVAS_SIZE, i * tileSize); ctx.stroke();
-            }
-        }
+        outputText += "\n}, true);";
+        outputBox.value = outputText;
+      }
 
-        function drawOrigin() {
-            const originPixelX = (CANVAS_SIZE / 2) + (OFFSET_X * PIXELS_PER_INCH);
-            const originPixelY = (CANVAS_SIZE / 2) - (OFFSET_Y * PIXELS_PER_INCH);
+      function copyToClipboard() {
+        outputBox.select();
+        document.execCommand("copy");
+        alert("Kod kopyalandı!");
+      }
 
-            ctx.strokeStyle = 'rgba(255, 255, 0, 0.4)';
-            ctx.beginPath(); ctx.moveTo(0, originPixelY); ctx.lineTo(CANVAS_SIZE, originPixelY); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(originPixelX, 0); ctx.lineTo(originPixelX, CANVAS_SIZE); ctx.stroke();
-
-            ctx.fillStyle = 'yellow';
-            ctx.beginPath(); ctx.arc(originPixelX, originPixelY, 5, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = 'white'; ctx.font = "12px Arial"; ctx.fillText("(0,0)", originPixelX + 8, originPixelY - 8);
-        }
-
-        function drawRawPath() {
-            if (rawPoints.length < 2) return;
-            ctx.beginPath(); ctx.strokeStyle = '#00ff00'; ctx.lineWidth = 3;
-            ctx.moveTo(rawPoints[0].x, rawPoints[0].y);
-            for (let i = 1; i < rawPoints.length; i++) ctx.lineTo(rawPoints[i].x, rawPoints[i].y);
-            ctx.stroke();
-        }
-
-        // --- Matematiksel İşlemler ---
-        function processPath() {
-            if (rawPoints.length < 2) return;
-
-            let desiredPoints = parseInt(pointCountInput.value);
-            if (desiredPoints < 2) desiredPoints = 2;
-
-            let totalLength = 0;
-            let lengths = [0]; 
-            
-            for (let i = 0; i < rawPoints.length - 1; i++) {
-                const dx = rawPoints[i+1].x - rawPoints[i].x;
-                const dy = rawPoints[i+1].y - rawPoints[i].y;
-                totalLength += Math.sqrt(dx*dx + dy*dy);
-                lengths.push(totalLength);
-            }
-
-            const step = totalLength / (desiredPoints - 1);
-            let finalPoints = [];
-            finalPoints.push(rawPoints[0]);
-
-            for (let k = 1; k < desiredPoints - 1; k++) {
-                const targetDist = k * step;
-                let index = 0;
-                while (lengths[index+1] < targetDist) index++;
-                
-                const segmentLen = lengths[index+1] - lengths[index];
-                const fraction = (targetDist - lengths[index]) / segmentLen;
-                const p1 = rawPoints[index];
-                const p2 = rawPoints[index+1];
-                
-                finalPoints.push({
-                    x: p1.x + (p2.x - p1.x) * fraction,
-                    y: p1.y + (p2.y - p1.y) * fraction
-                });
-            }
-            finalPoints.push(rawPoints[rawPoints.length - 1]);
-
-            drawScreen(); 
-            
-            ctx.beginPath(); ctx.strokeStyle = 'cyan'; ctx.lineWidth = 2;
-            ctx.moveTo(finalPoints[0].x, finalPoints[0].y);
-            for(let p of finalPoints) ctx.lineTo(p.x, p.y);
-            ctx.stroke();
-
-            ctx.fillStyle = 'red';
-            for(let p of finalPoints) {
-                ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI*2); ctx.fill();
-            }
-
-            generateFormattedOutput(finalPoints);
-        }
-
-        function getCoordinatesInches(point) {
-            let pixelDX = point.x - (CANVAS_SIZE / 2);
-            let pixelDY = (CANVAS_SIZE / 2) - point.y; 
-
-            // VEX Sahanın Standart Koordinatları
-            let inchesX = (pixelDX / PIXELS_PER_INCH) - OFFSET_X;
-            let inchesY = (pixelDY / PIXELS_PER_INCH) - OFFSET_Y;
-
-            return { x: inchesX, y: inchesY };
-        }
-
-        // --- YENİ AÇI HESAPLAMA MANTIĞI ---
-        // Sadece iki nokta arasındaki ham açıyı verir.
-        // İstenen: Sağ=0, Yukarı=-90, Sol=180/-180, Aşağı=90
-        function calculateRawHeading(p1, p2) {
-            const c1 = getCoordinatesInches(p1);
-            const c2 = getCoordinatesInches(p2);
-
-            const dy = c2.y - c1.y; // Yukarı pozitif
-            const dx = c2.x - c1.x; // Sağ pozitif
-
-            // Math.atan2(y,x) standartı: Sağ=0, Yukarı=90, Sol=180, Aşağı=-90
-            let mathAngleRad = Math.atan2(dy, dx);
-            let mathAngleDeg = mathAngleRad * 180 / Math.PI;
-
-            // Bizim isteğimiz: Yukarı -90 olsun. 
-            // Matematik açısının negatifini alırsak:
-            // Sağ (0) -> -0 = 0 (OK)
-            // Yukarı (90) -> -90 (OK)
-            // Sol (180) -> -180 (OK)
-            // Aşağı (-90) -> 90 (OK)
-            
-            return -mathAngleDeg;
-        }
-
-        function generateFormattedOutput(points) {
-            const speedVar = speedInput.value;
-            let outputText = "chassis.pid_odom_set({\n";
-            
-            // Kümülatif (Sürekli) Açı için Değişkenler
-            let previousRawAngle = 0;
-            let continuousAngle = 0;
-
-            for (let i = 0; i < points.length; i++) {
-                let currentP = points[i];
-                let coords = getCoordinatesInches(currentP);
-
-                // --- AÇI HESABI ---
-                let currentRawAngle = 0;
-
-                // 1. Mevcut segmentin ham açısını bul
-                if (i < points.length - 1) {
-                    currentRawAngle = calculateRawHeading(currentP, points[i+1]);
-                } else {
-                    // Son nokta için bir önceki açıyı koru
-                    currentRawAngle = calculateRawHeading(points[i-1], currentP);
-                }
-
-                // 2. Kümülatif Hesaplama
-                if (i === 0) {
-                    // İlk noktada doğrudan değeri al
-                    continuousAngle = currentRawAngle;
-                } else {
-                    // Önceki açı ile şimdiki açı arasındaki en kısa yolu bul
-                    let delta = currentRawAngle - previousRawAngle;
-
-                    // Normalizasyon (Sargı Çözme): Delta'yı -180 ile 180 arasına sıkıştır
-                    while (delta > 180) delta -= 360;
-                    while (delta < -180) delta += 360;
-
-                    // Kümülatif toplama ekle
-                    continuousAngle += delta;
-                }
-
-                // Bir sonraki tur için ham açıyı kaydet
-                previousRawAngle = currentRawAngle;
-                // ------------------
-
-                let xFinal = Math.round(coords.x * 100) / 100;
-                let yFinal = - Math.round(coords.y * 100) / 100;
-                // Hesaplanmış sürekli açıyı kullan
-                let angleFinal = Math.round(continuousAngle * 100) / 100;
-
-                const lineData = `{${yFinal}_in, ${xFinal}_in, ${angleFinal}_deg, fwd, ${speedVar}}`;
-                
-                if (i === 0) {
-                    outputText += "      " + lineData;
-                } else {
-                    outputText += ",\n      " + lineData;
-                }
-            }
-            
-            outputText += "\n}, true);";
-            outputBox.value = outputText;
-        }
-
-        function copyToClipboard() {
-            outputBox.select();
-            document.execCommand('copy');
-            alert("Kod kopyalandı!");
-        }
-
-        function clearCanvas() {
-            rawPoints = [];
-            drawScreen();
-            outputBox.value = "// Yolu çizdiğinizde kod burada belirecek...";
-        }
-
+      function clearCanvas() {
+        rawPoints = [];
+        drawScreen();
+        outputBox.value = "// Yolu çizdiğinizde kod burada belirecek...";
+      }
     </script>
-</body>
+  </body>
 </html>
