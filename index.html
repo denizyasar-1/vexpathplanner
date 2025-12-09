@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VEX Path Planner - Pro Editor v7</title>
+    <title>VEX Path Planner - Pro Editor v9</title>
     <style>
       /* GENEL SAYFA DÜZENİ */
       body {
@@ -207,7 +207,6 @@
         margin: 5px 0;
       }
 
-      /* Yeni Inputlar için stil */
       .full-width-input {
         width: 95%;
         background: #222;
@@ -215,6 +214,15 @@
         color: #fff;
         padding: 4px;
         margin-top: 2px;
+      }
+
+      select {
+        width: 100%;
+        background: #222;
+        border: 1px solid #555;
+        color: #fff;
+        padding: 4px;
+        border-radius: 4px;
       }
 
       .output-panel {
@@ -289,7 +297,7 @@
     </style>
   </head>
   <body>
-    <h1>VEX Path Planner - Pro Editor v7</h1>
+    <h1>VEX Path Planner - Pro Editor v9</h1>
 
     <div class="top-controls">
       <div class="switch-container">
@@ -354,8 +362,8 @@
             font-size: 0.9rem;
           "
         >
-          Bir nokta seçili değil.<br /><br />Düzenlemek için haritadan bir
-          noktaya tıklayın.
+          Bir nokta seçili değil.<br /><br />Başlangıç noktası yeşil renklidir.
+          Sürükleyerek taşıyabilirsiniz.
         </div>
 
         <div id="selectionControls" style="display: none">
@@ -371,7 +379,7 @@
           </div>
 
           <div class="setting-group">
-            <label>Nokta Adı (Opsiyonel):</label>
+            <label>Nokta Adı:</label>
             <input
               type="text"
               id="pointNameInput"
@@ -381,14 +389,24 @@
             />
           </div>
 
-          <div class="setting-group">
-            <label>Nokta Hızı (0-127):</label>
-            <input
-              type="text"
-              id="pointSpeedInput"
-              class="full-width-input"
-              oninput="manualSpeedChange(this.value)"
-            />
+          <div id="movementSettings">
+            <div class="setting-group">
+              <label>Nokta Hızı (0-127):</label>
+              <input
+                type="text"
+                id="pointSpeedInput"
+                class="full-width-input"
+                oninput="manualSpeedChange(this.value)"
+              />
+            </div>
+
+            <div class="setting-group">
+              <label>Hareket Yönü:</label>
+              <select id="pointDirInput" onchange="manualDirChange(this.value)">
+                <option value="fwd">İleri (Forward)</option>
+                <option value="rev">Geri (Reverse)</option>
+              </select>
+            </div>
           </div>
 
           <div class="setting-group">
@@ -456,7 +474,11 @@
             </div>
           </div>
 
-          <button class="delete-pt" onclick="deleteSelectedPoint()">
+          <button
+            class="delete-pt"
+            id="deleteBtn"
+            onclick="deleteSelectedPoint()"
+          >
             Noktayı Sil
           </button>
         </div>
@@ -476,7 +498,9 @@
         <h3 style="margin-top: 5px; color: #fff; font-size: 0.9rem">
           Kod Çıktısı
         </h3>
-        <textarea id="outputBox" readonly>// Kod buraya gelecek...</textarea>
+        <textarea id="outputBox" readonly>
+// Lütfen haritaya tıklayarak başlangıç noktasını (robotu) yerleştirin.</textarea
+        >
 
         <div class="btn-group">
           <button onclick="copyToClipboard()">Kopyala</button>
@@ -494,12 +518,11 @@
       const ctx = canvas.getContext("2d");
       const outputBox = document.getElementById("outputBox");
       const pointCountInput = document.getElementById("pointCountInput");
-      const globalSpeedInput = document.getElementById("globalSpeedInput"); // İsim değişti
+      const globalSpeedInput = document.getElementById("globalSpeedInput");
       const modeLabel = document.getElementById("modeLabel");
       const curveToggle = document.getElementById("curveToggle");
       const curveLabel = document.getElementById("curveLabel");
 
-      // Panel Elemanları
       const noSelectionMsg = document.getElementById("noSelectionMsg");
       const selectionControls = document.getElementById("selectionControls");
       const selectedIndexDisplay = document.getElementById(
@@ -509,9 +532,12 @@
       const coordYInput = document.getElementById("coordYInput");
       const angleInput = document.getElementById("angleInput");
       const angleSlider = document.getElementById("angleSlider");
-      // YENİ INPUTLAR
+
       const pointNameInput = document.getElementById("pointNameInput");
       const pointSpeedInput = document.getElementById("pointSpeedInput");
+      const pointDirInput = document.getElementById("pointDirInput");
+      const movementSettings = document.getElementById("movementSettings");
+      const deleteBtn = document.getElementById("deleteBtn");
 
       const bgImage = new Image();
       bgImage.src = "field.png";
@@ -519,15 +545,15 @@
       const FIELD_SIZE_INCHES = 144;
       const CANVAS_SIZE = 600;
       const PIXELS_PER_INCH = CANVAS_SIZE / FIELD_SIZE_INCHES;
-      const OFFSET_X = -48;
+      const OFFSET_X = 0;
       const OFFSET_Y = 0;
 
-      // DATA YAPISI GÜNCELLENDİ: { x, y, customHeading, name, speed }
       let rawPoints = [];
       let processedPoints = [];
 
       let isPointMode = true;
       let isDrawing = false;
+      let isDragging = false; // YENİ: Sürükleme durumu
       let selectedPointIndex = -1;
 
       bgImage.onload = function () {
@@ -566,49 +592,55 @@
         processPath();
       }
 
-      function updateGlobalSpeed() {
-        // Global hız değiştiğinde sadece yeni noktalar etkilenir, eskileri bozmayalım.
-        // İstenirse tüm noktaları güncellemek için buraya loop konabilir.
-        // Şimdilik sadece kod çıktısını tetiklemiyoruz çünkü nokta verisi değişmedi.
-      }
+      function updateGlobalSpeed() {}
 
-      // --- MOUSE EVENTLERİ ---
+      // --- MOUSE EVENTLERİ (GÜNCELLENDİ: SÜRÜKLEME) ---
       canvas.addEventListener("mousedown", (e) => {
         const rect = canvas.getBoundingClientRect();
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;
 
-        let targetList = isPointMode ? rawPoints : processedPoints;
+        let targetList = isPointMode || isDrawing ? rawPoints : processedPoints;
 
+        // Önce bir noktaya tıklandı mı diye bak
         let clickedIndex = -1;
+        // Ters döngü: Üst üste binenlerde en üsttekini (son ekleneni) seç
         for (let i = targetList.length - 1; i >= 0; i--) {
           const dist = Math.hypot(targetList[i].x - mx, targetList[i].y - my);
           if (dist < 15) {
+            // 15px tolerans
             clickedIndex = i;
             break;
           }
         }
 
         if (clickedIndex !== -1) {
+          // NOKTA BULUNDU -> SEÇ VE SÜRÜKLEMEYİ BAŞLAT
           selectedPointIndex = clickedIndex;
+          isDragging = true;
           updateSelectionUI();
           drawScreen();
           return;
-        } else {
-          if (selectedPointIndex !== -1) {
-            selectedPointIndex = -1;
-            updateSelectionUI();
-            drawScreen();
-            return;
-          }
         }
 
+        // Boşluğa tıklandıysa ve nokta seçiliyse -> Seçimi kaldır
+        if (selectedPointIndex !== -1) {
+          selectedPointIndex = -1;
+          updateSelectionUI();
+          drawScreen();
+          return;
+        }
+
+        // Boşluğa tıklandı ve seçim yok -> YENİ NOKTA EKLE
         if (isPointMode) {
           addRawPoint(mx, my);
           processPath();
           selectedPointIndex = rawPoints.length - 1;
+          // Yeni eklenen nokta da sürüklenebilir olsun
+          isDragging = true;
           updateSelectionUI();
         } else {
+          // Serbest çizim başlat
           isDrawing = true;
           rawPoints = [];
           processedPoints = [];
@@ -619,23 +651,59 @@
       });
 
       canvas.addEventListener("mousemove", (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+
+        // 1. Durum: NOKTA SÜRÜKLENİYOR
+        if (isDragging && selectedPointIndex !== -1) {
+          let targetList =
+            isPointMode || isDrawing ? rawPoints : processedPoints;
+          if (targetList[selectedPointIndex]) {
+            targetList[selectedPointIndex].x = mx;
+            targetList[selectedPointIndex].y = my;
+
+            // Koordinatları inputlara yansıt
+            const coords = getCoordinatesInches(targetList[selectedPointIndex]);
+            coordXInput.value = coords.x.toFixed(2);
+            coordYInput.value = coords.y.toFixed(2);
+
+            // Ekranı ve kodu güncelle (Resample yapmadan, sadece pozisyon güncelle)
+            drawScreen();
+            // Eğer nokta modundaysak processedPoints = rawPoints olduğu için kod da güncellenmeli
+            // Serbest çizim modunda processedPoints'i güncelliyoruz, kod yine güncellenmeli
+            // processPath(true) -> true: resampling yapma, sadece çıktıyı güncelle
+            if (!isDrawing) processPath(true);
+          }
+          return;
+        }
+
+        // 2. Durum: SERBEST ÇİZİM YAPILIYOR
         if (!isPointMode && isDrawing) {
-          const rect = canvas.getBoundingClientRect();
-          addRawPoint(e.clientX - rect.left, e.clientY - rect.top);
+          addRawPoint(mx, my);
           drawScreen();
         }
       });
 
       canvas.addEventListener("mouseup", () => {
+        // Sürükleme bitişi
+        if (isDragging) {
+          isDragging = false;
+          // Serbest modda, processedPoints üzerindeki sürükleme bittiğinde her şey tamam.
+          // Nokta modunda zaten rawPoints güncellendi.
+          // Sadece final bir processPath gerekebilir.
+          if (!isDrawing) processPath(true);
+        }
+
+        // Serbest çizim bitişi
         if (!isPointMode && isDrawing) {
           isDrawing = false;
-          processPath();
+          processPath(); // Resampling yap
         }
       });
 
       // --- NOKTA İŞLEMLERİ ---
       function addRawPoint(x, y) {
-        // Yeni nokta eklerken varsayılan hız global kutudan alınır
         let defaultSpeed = globalSpeedInput.value || "127";
         rawPoints.push({
           x,
@@ -643,11 +711,17 @@
           customHeading: null,
           name: "",
           speed: defaultSpeed,
+          dir: "fwd",
         });
       }
 
       function deleteSelectedPoint() {
         if (selectedPointIndex !== -1) {
+          if (selectedPointIndex === 0) {
+            alert("Başlangıç noktası silinemez!");
+            return;
+          }
+
           if (isPointMode) {
             rawPoints.splice(selectedPointIndex, 1);
           } else {
@@ -674,7 +748,8 @@
         selectedPointIndex = -1;
         updateSelectionUI();
         drawScreen();
-        outputBox.value = "// Nokta ekleyin veya çizin...";
+        outputBox.value =
+          "// Lütfen haritaya tıklayarak başlangıç noktasını (robotu) yerleştirin.";
       }
 
       function mirrorPath(axis) {
@@ -709,7 +784,7 @@
         if (selectedPointIndex !== -1) updateSelectionUI();
       }
 
-      // --- UI GÜNCELLEME (YENİ INPUTLAR EKLENDİ) ---
+      // --- UI GÜNCELLEME ---
       function updateSelectionUI() {
         if (selectedPointIndex !== -1) {
           noSelectionMsg.style.display = "none";
@@ -728,9 +803,21 @@
           coordXInput.value = coords.x.toFixed(2);
           coordYInput.value = coords.y.toFixed(2);
 
-          // İSİM VE HIZ GÜNCELLEME
-          pointNameInput.value = p.name || "";
-          pointSpeedInput.value = p.speed || globalSpeedInput.value;
+          if (selectedPointIndex === 0) {
+            pointNameInput.value = "Başlangıç Noktası";
+            pointNameInput.disabled = true;
+            deleteBtn.disabled = true;
+            deleteBtn.style.opacity = "0.5";
+            movementSettings.style.display = "none";
+          } else {
+            pointNameInput.value = p.name || "";
+            pointNameInput.disabled = false;
+            deleteBtn.disabled = false;
+            deleteBtn.style.opacity = "1";
+            movementSettings.style.display = "block";
+            pointSpeedInput.value = p.speed || globalSpeedInput.value;
+            pointDirInput.value = p.dir || "fwd";
+          }
 
           if (p.customHeading !== null) {
             angleInput.value = p.customHeading;
@@ -746,20 +833,27 @@
         }
       }
 
-      // --- MANUEL DEĞİŞİKLİKLER ---
       function manualNameChange(val) {
-        if (selectedPointIndex !== -1) {
+        if (selectedPointIndex !== -1 && selectedPointIndex !== 0) {
           let list = isPointMode ? rawPoints : processedPoints;
           list[selectedPointIndex].name = val;
-          drawScreen(); // İsim ekranda yazsın diye çiz
+          drawScreen();
           generateFormattedOutput(list);
         }
       }
 
       function manualSpeedChange(val) {
-        if (selectedPointIndex !== -1) {
+        if (selectedPointIndex !== -1 && selectedPointIndex !== 0) {
           let list = isPointMode ? rawPoints : processedPoints;
           list[selectedPointIndex].speed = val;
+          generateFormattedOutput(list);
+        }
+      }
+
+      function manualDirChange(val) {
+        if (selectedPointIndex !== -1 && selectedPointIndex !== 0) {
+          let list = isPointMode ? rawPoints : processedPoints;
+          list[selectedPointIndex].dir = val;
           generateFormattedOutput(list);
         }
       }
@@ -817,7 +911,6 @@
         }
       }
 
-      // --- ANA İŞLEM (RESAMPLE + SPEED TAŞIMA) ---
       function processPath(skipResample = false) {
         if (isPointMode) {
           processedPoints = rawPoints.slice();
@@ -827,7 +920,6 @@
             if (desiredPoints < 2) desiredPoints = 2;
             let defaultSpeed = globalSpeedInput.value;
 
-            // Uzunluk hesabı...
             let totalLength = 0;
             let lengths = [0];
             for (let i = 0; i < rawPoints.length - 1; i++) {
@@ -841,13 +933,13 @@
             let newPoints = [];
             let step = totalLength / (desiredPoints - 1);
 
-            // İlk nokta (Speed bilgisini koru veya default ver)
             newPoints.push({
               x: rawPoints[0].x,
               y: rawPoints[0].y,
               customHeading: null,
-              name: "",
+              name: "Başlangıç Noktası",
               speed: defaultSpeed,
+              dir: "fwd",
             });
 
             for (let k = 1; k < desiredPoints - 1; k++) {
@@ -873,6 +965,7 @@
                 customHeading: null,
                 name: "",
                 speed: defaultSpeed,
+                dir: "fwd",
               });
             }
             let lastP = rawPoints[rawPoints.length - 1];
@@ -882,6 +975,7 @@
               customHeading: null,
               name: "",
               speed: defaultSpeed,
+              dir: "fwd",
             });
 
             processedPoints = newPoints;
@@ -891,7 +985,6 @@
         generateFormattedOutput(processedPoints);
       }
 
-      // --- HERMITE SPLINE ---
       function getHermiteSplinePoints(points, segments) {
         if (points.length < 2) return points;
         let splinePoints = [];
@@ -987,19 +1080,26 @@
               drawFancyPoint(
                 processedPoints[i],
                 i === selectedPointIndex,
-                visAngle
+                visAngle,
+                i === 0
               );
             }
           }
         }
       }
 
-      function drawFancyPoint(p, isSelected, headingDeg) {
+      function drawFancyPoint(p, isSelected, headingDeg, isStart) {
         let radius = 8;
         ctx.beginPath();
-        ctx.fillStyle = isSelected
-          ? "rgba(255, 159, 67, 1.0)"
-          : "rgba(255, 159, 67, 0.8)";
+        if (isStart)
+          ctx.fillStyle = isSelected
+            ? "rgba(40, 167, 69, 1.0)"
+            : "rgba(40, 167, 69, 0.8)";
+        else
+          ctx.fillStyle = isSelected
+            ? "rgba(255, 159, 67, 1.0)"
+            : "rgba(255, 159, 67, 0.8)";
+
         ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
         ctx.fill();
 
@@ -1013,7 +1113,6 @@
           ctx.stroke();
         }
 
-        // AÇI ÇİZGİSİ
         let angleDeg = -headingDeg;
         const angleRad = (angleDeg * Math.PI) / 180;
         ctx.beginPath();
@@ -1026,11 +1125,20 @@
         );
         ctx.stroke();
 
-        // İSİM ETİKETİ ÇİZİMİ
-        if (p.name && p.name.length > 0) {
-          ctx.fillStyle = "#fff";
-          ctx.font = "bold 12px Arial";
-          ctx.fillText(p.name, p.x + 12, p.y - 12);
+        // İSİM GÖSTERME KURALI:
+        // 1. Sadece SEÇİLİ iken gösterilsin.
+        // 2. Veya Başlangıç noktası ise (opsiyonel, ama genelde istenir)
+        // Kullanıcı isteği: "noktalar seçili olmadıkları sürece isimleri gözükmesin"
+
+        if (isSelected) {
+          let displayName = p.name;
+          if (isStart) displayName = "Başlangıç";
+
+          if (displayName && displayName.length > 0) {
+            ctx.fillStyle = "#fff";
+            ctx.font = "bold 12px Arial";
+            ctx.fillText(displayName, p.x + 12, p.y - 12);
+          }
         }
       }
 
@@ -1038,6 +1146,7 @@
         ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
         ctx.lineWidth = 1;
         const tileSize = 24 * PIXELS_PER_INCH;
+
         for (let i = 1; i < 6; i++) {
           ctx.beginPath();
           ctx.moveTo(i * tileSize, 0);
@@ -1048,15 +1157,29 @@
           ctx.lineTo(CANVAS_SIZE, i * tileSize);
           ctx.stroke();
         }
+
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(CANVAS_SIZE / 2, 0);
+        ctx.lineTo(CANVAS_SIZE / 2, CANVAS_SIZE);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, CANVAS_SIZE / 2);
+        ctx.lineTo(CANVAS_SIZE, CANVAS_SIZE / 2);
+        ctx.stroke();
       }
 
       function drawOriginPoint() {
-        const ox = CANVAS_SIZE / 2 + OFFSET_X * PIXELS_PER_INCH;
-        const oy = CANVAS_SIZE / 2 - OFFSET_Y * PIXELS_PER_INCH;
+        const ox = CANVAS_SIZE / 2;
+        const oy = CANVAS_SIZE / 2;
         ctx.fillStyle = "yellow";
         ctx.beginPath();
         ctx.arc(ox, oy, 4, 0, Math.PI * 2);
         ctx.fill();
+        ctx.fillStyle = "rgba(255,255,255,0.5)";
+        ctx.font = "10px Arial";
+        ctx.fillText("(0,0)", ox + 5, oy - 5);
       }
 
       function drawRawPath(pts, isCurved) {
@@ -1069,7 +1192,6 @@
         ctx.stroke();
       }
 
-      // --- KOD ÜRETİMİ ---
       function getCoordinatesInches(point) {
         let pixelDX = point.x - CANVAS_SIZE / 2;
         let pixelDY = CANVAS_SIZE / 2 - point.y;
@@ -1089,8 +1211,13 @@
       }
 
       function generateFormattedOutput(points) {
-        let outputText = "chassis.pid_odom_set({\n";
+        if (points.length === 0) {
+          outputBox.value =
+            "// Lütfen haritaya tıklayarak başlangıç noktasını (robotu) yerleştirin.";
+          return;
+        }
 
+        let outputText = "";
         let continuousAngle = 0;
         let previousRawAngle = 0;
 
@@ -1132,17 +1259,29 @@
           let yF = Math.round(coords.y * 100) / 100;
           let aF = Math.round(angleFinal * 100) / 100;
 
-          // SPEED AYARI: Noktanın özel hızı varsa onu kullan, yoksa global varsayılanı kullan
-          let ptSpeed = currentP.speed || globalSpeedInput.value;
+          if (i === 0) {
+            outputText += `chassis.odom_xyt_set(${xF}_in, ${yF}_in, ${aF}_deg);\n\n`;
+            outputText += "chassis.pid_odom_set({\n";
+          } else {
+            let ptSpeed = currentP.speed || globalSpeedInput.value;
+            let ptDir = currentP.dir || "fwd";
 
-          let lineData = `{${xF}_in, ${yF}_in, ${aF}_deg, fwd, ${ptSpeed}}`;
+            let lineData = `{${xF}_in, ${yF}_in, ${aF}_deg, ${ptDir}, ${ptSpeed}}`;
 
-          // İSİM YORUMU
-          if (currentP.name && currentP.name.length > 0) {
-            lineData += `, // ${currentP.name}`;
+            if (currentP.name && currentP.name.length > 0) {
+              lineData += `, // ${currentP.name}`;
+            }
+
+            if (i === 1) {
+              outputText += "      " + lineData;
+            } else {
+              outputText += ",\n      " + lineData;
+            }
           }
+        }
 
-          outputText += (i === 0 ? "      " : ",\n      ") + lineData;
+        if (points.length === 1) {
+          outputText += "      // Hareket için daha fazla nokta ekleyin...\n";
         }
 
         outputText += "\n}, true);";
