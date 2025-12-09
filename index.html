@@ -47,6 +47,12 @@
         width: 60px;
         text-align: center;
       }
+      /* Disabled input stili */
+      .controls input:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background: #333;
+      }
 
       /* TOGGLE SWITCH STILLERI */
       .switch-container {
@@ -291,14 +297,20 @@
 
         if (isPointMode) {
           modeLabel.innerText = "Nokta Ekleme";
-          undoBtn.style.display = "block"; // Nokta modunda geri al butonu göster
+          undoBtn.style.display = "block";
           canvas.style.cursor = "cell";
+
+          // Nokta modunda "Nokta Sayısı" girdisini devre dışı bırak
+          pointCountInput.disabled = true;
         } else {
           modeLabel.innerText = "Serbest Çizim";
           undoBtn.style.display = "none";
           canvas.style.cursor = "crosshair";
+
+          // Serbest çizimde tekrar aktif et
+          pointCountInput.disabled = false;
         }
-        // Mod değişince temizleyelim ki karışıklık olmasın
+        // Mod değişince temizleyelim
         clearCanvas();
       }
 
@@ -320,8 +332,7 @@
 
       canvas.addEventListener("mousemove", (e) => {
         if (isPointMode) {
-          // Nokta modunda sürüklerken çizim yapmıyoruz,
-          // İstenirse burada "ghost line" (hayalet çizgi) eklenebilir.
+          // Nokta modunda sürüklerken çizim yapmıyoruz
           return;
         }
 
@@ -360,8 +371,7 @@
           if (rawPoints.length > 1) {
             processPath();
           } else {
-            // Tek nokta kaldıysa veya bittiyse çıktıyı temizle
-            drawRawPath(); // Kalan tek noktayı göster
+            drawRawPath();
             outputBox.value = "// Nokta eklemeye devam edin...";
           }
         }
@@ -386,10 +396,8 @@
         drawGrid();
         drawOrigin();
 
-        // Eğer nokta modundaysak ham yolu (işaretlenen noktaları) sürekli göster
         if (isPointMode && rawPoints.length > 0) {
           drawRawPath();
-          // Noktaların yerlerini belirginleştir
           ctx.fillStyle = "#00ff00";
           for (let p of rawPoints) {
             ctx.beginPath();
@@ -444,7 +452,6 @@
         ctx.strokeStyle = "#00ff00";
         ctx.lineWidth = 2;
 
-        // Eğer tek nokta varsa sadece onu çiz
         if (rawPoints.length === 1) {
           ctx.arc(rawPoints[0].x, rawPoints[0].y, 2, 0, Math.PI * 2);
           return;
@@ -456,47 +463,54 @@
         ctx.stroke();
       }
 
-      // --- MATEMATİK VE İŞLEME ---
+      // --- MATEMATİK VE İŞLEME (GÜNCELLENEN KISIM) ---
       function processPath() {
         if (rawPoints.length < 2) return;
 
-        let desiredPoints = parseInt(pointCountInput.value);
-        if (desiredPoints < 2) desiredPoints = 2;
-
-        // 1. Toplam uzunluğu hesapla
-        let totalLength = 0;
-        let lengths = [0];
-
-        for (let i = 0; i < rawPoints.length - 1; i++) {
-          const dx = rawPoints[i + 1].x - rawPoints[i].x;
-          const dy = rawPoints[i + 1].y - rawPoints[i].y;
-          totalLength += Math.sqrt(dx * dx + dy * dy);
-          lengths.push(totalLength);
-        }
-
-        // 2. Noktaları eşit aralıklarla yeniden örnekle (Resampling)
-        // Bu kısım hem serbest çizim hem de nokta modu için çalışır.
-        // Nokta modunda A'dan B'ye düz çizgi olsa bile arayı doldurur.
-        const step = totalLength / (desiredPoints - 1);
         let finalPoints = [];
-        finalPoints.push(rawPoints[0]);
 
-        for (let k = 1; k < desiredPoints - 1; k++) {
-          const targetDist = k * step;
-          let index = 0;
-          while (lengths[index + 1] < targetDist) index++;
-
-          const segmentLen = lengths[index + 1] - lengths[index];
-          const fraction = (targetDist - lengths[index]) / segmentLen;
-          const p1 = rawPoints[index];
-          const p2 = rawPoints[index + 1];
-
-          finalPoints.push({
-            x: p1.x + (p2.x - p1.x) * fraction,
-            y: p1.y + (p2.y - p1.y) * fraction,
-          });
+        // EĞER NOKTA MODUNDAYSAK: DOĞRUDAN TIKLANAN NOKTALARI KULLAN
+        if (isPointMode) {
+          // Referans koparmak için slice() kullanıyoruz
+          finalPoints = rawPoints.slice();
         }
-        finalPoints.push(rawPoints[rawPoints.length - 1]);
+        // EĞER SERBEST ÇİZİM MODUNDAYSAK: YOLU YUMUŞAT VE BÖL (ESKİ MANTIK)
+        else {
+          let desiredPoints = parseInt(pointCountInput.value);
+          if (desiredPoints < 2) desiredPoints = 2;
+
+          // 1. Toplam uzunluğu hesapla
+          let totalLength = 0;
+          let lengths = [0];
+
+          for (let i = 0; i < rawPoints.length - 1; i++) {
+            const dx = rawPoints[i + 1].x - rawPoints[i].x;
+            const dy = rawPoints[i + 1].y - rawPoints[i].y;
+            totalLength += Math.sqrt(dx * dx + dy * dy);
+            lengths.push(totalLength);
+          }
+
+          // 2. Noktaları eşit aralıklarla yeniden örnekle
+          const step = totalLength / (desiredPoints - 1);
+          finalPoints.push(rawPoints[0]);
+
+          for (let k = 1; k < desiredPoints - 1; k++) {
+            const targetDist = k * step;
+            let index = 0;
+            while (lengths[index + 1] < targetDist) index++;
+
+            const segmentLen = lengths[index + 1] - lengths[index];
+            const fraction = (targetDist - lengths[index]) / segmentLen;
+            const p1 = rawPoints[index];
+            const p2 = rawPoints[index + 1];
+
+            finalPoints.push({
+              x: p1.x + (p2.x - p1.x) * fraction,
+              y: p1.y + (p2.y - p1.y) * fraction,
+            });
+          }
+          finalPoints.push(rawPoints[rawPoints.length - 1]);
+        }
 
         // Ekranı güncelle
         drawScreen();
