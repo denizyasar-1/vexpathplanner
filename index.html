@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VEX Path Planner - Pro Editor v4</title>
+    <title>VEX Path Planner - Pro Editor v7</title>
     <style>
       /* GENEL SAYFA DÜZENİ */
       body {
@@ -134,7 +134,7 @@
       }
 
       .settings-panel {
-        width: 240px;
+        width: 250px;
         background-color: #252526;
         border: 1px solid #3e3e42;
         border-radius: 8px;
@@ -165,6 +165,7 @@
         color: #aaa;
         margin-bottom: 4px;
       }
+
       .coord-inputs {
         display: flex;
         gap: 5px;
@@ -183,6 +184,7 @@
         font-size: 0.8rem;
         color: #888;
       }
+
       .angle-control {
         display: flex;
         align-items: center;
@@ -205,8 +207,18 @@
         margin: 5px 0;
       }
 
+      /* Yeni Inputlar için stil */
+      .full-width-input {
+        width: 95%;
+        background: #222;
+        border: 1px solid #555;
+        color: #fff;
+        padding: 4px;
+        margin-top: 2px;
+      }
+
       .output-panel {
-        width: 320px;
+        width: 310px;
         background-color: #2d2d2d;
         padding: 10px;
         border-radius: 8px;
@@ -277,7 +289,7 @@
     </style>
   </head>
   <body>
-    <h1>VEX Path Planner - Pro Editor v4</h1>
+    <h1>VEX Path Planner - Pro Editor v7</h1>
 
     <div class="top-controls">
       <div class="switch-container">
@@ -305,22 +317,23 @@
         <span id="curveLabel">Düz Çizgi</span>
       </div>
 
-      <label for="pointCountInput">Vis.Kalite:</label>
+      <label for="pointCountInput">Nokta Sayısı:</label>
       <input
         type="number"
         id="pointCountInput"
         value="20"
-        min="5"
-        max="50"
+        min="2"
+        max="100"
         onchange="updateSettings()"
       />
 
-      <label for="speedInput">Hız:</label>
+      <label for="globalSpeedInput">Genel Hız:</label>
       <input
         type="text"
-        id="speedInput"
-        value="DRIVE_SPEED"
-        style="width: 80px"
+        id="globalSpeedInput"
+        value="127"
+        style="width: 60px"
+        onchange="updateGlobalSpeed()"
       />
     </div>
 
@@ -347,12 +360,35 @@
 
         <div id="selectionControls" style="display: none">
           <div class="setting-group">
-            <label>Seçili Nokta:</label>
-            <span
-              id="selectedIndexDisplay"
-              style="font-weight: bold; color: #fff"
-              >#0</span
+            <label
+              >Seçili Nokta:
+              <span
+                id="selectedIndexDisplay"
+                style="font-weight: bold; color: #fff; float: right"
+                >#0</span
+              ></label
             >
+          </div>
+
+          <div class="setting-group">
+            <label>Nokta Adı (Opsiyonel):</label>
+            <input
+              type="text"
+              id="pointNameInput"
+              class="full-width-input"
+              placeholder="Örn: Halka Al"
+              oninput="manualNameChange(this.value)"
+            />
+          </div>
+
+          <div class="setting-group">
+            <label>Nokta Hızı (0-127):</label>
+            <input
+              type="text"
+              id="pointSpeedInput"
+              class="full-width-input"
+              oninput="manualSpeedChange(this.value)"
+            />
           </div>
 
           <div class="setting-group">
@@ -408,7 +444,6 @@
               <button onclick="rotateAngle(-90)">↺ -90°</button>
               <button onclick="rotateAngle(90)">↻ +90°</button>
             </div>
-
             <div
               style="
                 font-size: 9px;
@@ -459,11 +494,12 @@
       const ctx = canvas.getContext("2d");
       const outputBox = document.getElementById("outputBox");
       const pointCountInput = document.getElementById("pointCountInput");
-      const speedInput = document.getElementById("speedInput");
+      const globalSpeedInput = document.getElementById("globalSpeedInput"); // İsim değişti
       const modeLabel = document.getElementById("modeLabel");
       const curveToggle = document.getElementById("curveToggle");
       const curveLabel = document.getElementById("curveLabel");
 
+      // Panel Elemanları
       const noSelectionMsg = document.getElementById("noSelectionMsg");
       const selectionControls = document.getElementById("selectionControls");
       const selectedIndexDisplay = document.getElementById(
@@ -473,6 +509,9 @@
       const coordYInput = document.getElementById("coordYInput");
       const angleInput = document.getElementById("angleInput");
       const angleSlider = document.getElementById("angleSlider");
+      // YENİ INPUTLAR
+      const pointNameInput = document.getElementById("pointNameInput");
+      const pointSpeedInput = document.getElementById("pointSpeedInput");
 
       const bgImage = new Image();
       bgImage.src = "field.png";
@@ -483,7 +522,10 @@
       const OFFSET_X = -48;
       const OFFSET_Y = 0;
 
+      // DATA YAPISI GÜNCELLENDİ: { x, y, customHeading, name, speed }
       let rawPoints = [];
+      let processedPoints = [];
+
       let isPointMode = true;
       let isDrawing = false;
       let selectedPointIndex = -1;
@@ -501,12 +543,14 @@
           modeLabel.innerText = "Nokta Ekleme";
           canvas.style.cursor = "default";
           document.getElementById("undoBtn").style.display = "block";
+          pointCountInput.disabled = true;
         } else {
           modeLabel.innerText = "Serbest Çizim";
           canvas.style.cursor = "crosshair";
           selectedPointIndex = -1;
           updateSelectionUI();
           document.getElementById("undoBtn").style.display = "none";
+          pointCountInput.disabled = false;
         }
         clearCanvas();
       }
@@ -519,8 +563,13 @@
           curveLabel.innerText = "Düz Çizgi";
           curveLabel.style.color = "#aaa";
         }
+        processPath();
+      }
 
-        if (rawPoints.length > 0) processPath();
+      function updateGlobalSpeed() {
+        // Global hız değiştiğinde sadece yeni noktalar etkilenir, eskileri bozmayalım.
+        // İstenirse tüm noktaları güncellemek için buraya loop konabilir.
+        // Şimdilik sadece kod çıktısını tetiklemiyoruz çünkü nokta verisi değişmedi.
       }
 
       // --- MOUSE EVENTLERİ ---
@@ -529,9 +578,11 @@
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;
 
+        let targetList = isPointMode ? rawPoints : processedPoints;
+
         let clickedIndex = -1;
-        for (let i = rawPoints.length - 1; i >= 0; i--) {
-          const dist = Math.hypot(rawPoints[i].x - mx, rawPoints[i].y - my);
+        for (let i = targetList.length - 1; i >= 0; i--) {
+          const dist = Math.hypot(targetList[i].x - mx, targetList[i].y - my);
           if (dist < 15) {
             clickedIndex = i;
             break;
@@ -554,13 +605,13 @@
 
         if (isPointMode) {
           addRawPoint(mx, my);
+          processPath();
           selectedPointIndex = rawPoints.length - 1;
           updateSelectionUI();
-          drawScreen();
-          processPath();
         } else {
           isDrawing = true;
           rawPoints = [];
+          processedPoints = [];
           selectedPointIndex = -1;
           addRawPoint(mx, my);
           drawScreen();
@@ -572,7 +623,6 @@
           const rect = canvas.getBoundingClientRect();
           addRawPoint(e.clientX - rect.left, e.clientY - rect.top);
           drawScreen();
-          drawRawPath(rawPoints, false);
         }
       });
 
@@ -585,43 +635,56 @@
 
       // --- NOKTA İŞLEMLERİ ---
       function addRawPoint(x, y) {
-        rawPoints.push({ x, y, customHeading: null });
+        // Yeni nokta eklerken varsayılan hız global kutudan alınır
+        let defaultSpeed = globalSpeedInput.value || "127";
+        rawPoints.push({
+          x,
+          y,
+          customHeading: null,
+          name: "",
+          speed: defaultSpeed,
+        });
       }
 
       function deleteSelectedPoint() {
         if (selectedPointIndex !== -1) {
-          rawPoints.splice(selectedPointIndex, 1);
+          if (isPointMode) {
+            rawPoints.splice(selectedPointIndex, 1);
+          } else {
+            processedPoints.splice(selectedPointIndex, 1);
+          }
           selectedPointIndex = -1;
           updateSelectionUI();
-          drawScreen();
-          processPath();
+          processPath(true);
         }
       }
 
       function undoLastPoint() {
-        if (rawPoints.length > 0) {
+        if (isPointMode && rawPoints.length > 0) {
           rawPoints.pop();
           selectedPointIndex = -1;
           updateSelectionUI();
-          drawScreen();
           processPath();
         }
       }
 
       function clearCanvas() {
         rawPoints = [];
+        processedPoints = [];
         selectedPointIndex = -1;
         updateSelectionUI();
         drawScreen();
-        outputBox.value = "// Nokta ekleyin...";
+        outputBox.value = "// Nokta ekleyin veya çizin...";
       }
 
       function mirrorPath(axis) {
-        if (rawPoints.length === 0) return;
+        let targetList = isPointMode || isDrawing ? rawPoints : processedPoints;
+        if (targetList.length === 0) return;
+
         const cx = CANVAS_SIZE / 2;
         const cy = CANVAS_SIZE / 2;
 
-        rawPoints.forEach((p) => {
+        targetList.forEach((p) => {
           if (axis === "X") {
             let distFromCenter = p.x - cx;
             p.x = cx - distFromCenter;
@@ -640,23 +703,34 @@
             }
           }
         });
+
         drawScreen();
-        processPath();
+        generateFormattedOutput(targetList);
         if (selectedPointIndex !== -1) updateSelectionUI();
       }
 
-      // --- UI GÜNCELLEME ---
+      // --- UI GÜNCELLEME (YENİ INPUTLAR EKLENDİ) ---
       function updateSelectionUI() {
         if (selectedPointIndex !== -1) {
           noSelectionMsg.style.display = "none";
           selectionControls.style.display = "block";
 
-          const p = rawPoints[selectedPointIndex];
+          let list = isPointMode || isDrawing ? rawPoints : processedPoints;
+          if (!list[selectedPointIndex]) {
+            selectedPointIndex = -1;
+            return;
+          }
+
+          const p = list[selectedPointIndex];
           const coords = getCoordinatesInches(p);
 
           selectedIndexDisplay.innerText = "#" + (selectedPointIndex + 1);
           coordXInput.value = coords.x.toFixed(2);
           coordYInput.value = coords.y.toFixed(2);
+
+          // İSİM VE HIZ GÜNCELLEME
+          pointNameInput.value = p.name || "";
+          pointSpeedInput.value = p.speed || globalSpeedInput.value;
 
           if (p.customHeading !== null) {
             angleInput.value = p.customHeading;
@@ -672,8 +746,28 @@
         }
       }
 
+      // --- MANUEL DEĞİŞİKLİKLER ---
+      function manualNameChange(val) {
+        if (selectedPointIndex !== -1) {
+          let list = isPointMode ? rawPoints : processedPoints;
+          list[selectedPointIndex].name = val;
+          drawScreen(); // İsim ekranda yazsın diye çiz
+          generateFormattedOutput(list);
+        }
+      }
+
+      function manualSpeedChange(val) {
+        if (selectedPointIndex !== -1) {
+          let list = isPointMode ? rawPoints : processedPoints;
+          list[selectedPointIndex].speed = val;
+          generateFormattedOutput(list);
+        }
+      }
+
       function manualCoordChange() {
         if (selectedPointIndex === -1) return;
+        let list = isPointMode ? rawPoints : processedPoints;
+
         let newXInches = parseFloat(coordXInput.value);
         let newYInches = parseFloat(coordYInput.value);
         if (isNaN(newXInches) || isNaN(newYInches)) return;
@@ -681,85 +775,148 @@
         let pX = (newXInches + OFFSET_X) * PIXELS_PER_INCH + CANVAS_SIZE / 2;
         let pY = CANVAS_SIZE / 2 - (newYInches + OFFSET_Y) * PIXELS_PER_INCH;
 
-        rawPoints[selectedPointIndex].x = pX;
-        rawPoints[selectedPointIndex].y = pY;
+        list[selectedPointIndex].x = pX;
+        list[selectedPointIndex].y = pY;
         drawScreen();
-        processPath();
+        generateFormattedOutput(list);
       }
 
       function manualAngleChange(val) {
         if (selectedPointIndex !== -1) {
-          rawPoints[selectedPointIndex].customHeading = parseFloat(val);
+          let list = isPointMode ? rawPoints : processedPoints;
+          list[selectedPointIndex].customHeading = parseFloat(val);
           angleInput.value = val;
           angleSlider.value = val;
           drawScreen();
-          processPath();
+          generateFormattedOutput(list);
         }
       }
 
       function rotateAngle(delta) {
         if (selectedPointIndex !== -1) {
-          let current = rawPoints[selectedPointIndex].customHeading;
+          let list = isPointMode ? rawPoints : processedPoints;
+          let current = list[selectedPointIndex].customHeading;
           if (current === null) current = 0;
           let newVal = current + delta;
           while (newVal > 180) newVal -= 360;
           while (newVal < -180) newVal += 360;
-          rawPoints[selectedPointIndex].customHeading = newVal;
+          list[selectedPointIndex].customHeading = newVal;
           updateSelectionUI();
           drawScreen();
-          processPath();
+          generateFormattedOutput(list);
         }
       }
 
       function resetAngle() {
         if (selectedPointIndex !== -1) {
-          rawPoints[selectedPointIndex].customHeading = null;
+          let list = isPointMode ? rawPoints : processedPoints;
+          list[selectedPointIndex].customHeading = null;
           updateSelectionUI();
           drawScreen();
-          processPath();
+          generateFormattedOutput(list);
         }
       }
 
-      // --- AKILLI HERMITE SPLINE ALGORİTMASI ---
-      // Açıyı (Tangent) hesaba katan yeni eğri fonksiyonu
+      // --- ANA İŞLEM (RESAMPLE + SPEED TAŞIMA) ---
+      function processPath(skipResample = false) {
+        if (isPointMode) {
+          processedPoints = rawPoints.slice();
+        } else if (!isDrawing && rawPoints.length > 1) {
+          if (!skipResample) {
+            let desiredPoints = parseInt(pointCountInput.value) || 20;
+            if (desiredPoints < 2) desiredPoints = 2;
+            let defaultSpeed = globalSpeedInput.value;
+
+            // Uzunluk hesabı...
+            let totalLength = 0;
+            let lengths = [0];
+            for (let i = 0; i < rawPoints.length - 1; i++) {
+              let dx = rawPoints[i + 1].x - rawPoints[i].x;
+              let dy = rawPoints[i + 1].y - rawPoints[i].y;
+              let dist = Math.hypot(dx, dy);
+              totalLength += dist;
+              lengths.push(totalLength);
+            }
+
+            let newPoints = [];
+            let step = totalLength / (desiredPoints - 1);
+
+            // İlk nokta (Speed bilgisini koru veya default ver)
+            newPoints.push({
+              x: rawPoints[0].x,
+              y: rawPoints[0].y,
+              customHeading: null,
+              name: "",
+              speed: defaultSpeed,
+            });
+
+            for (let k = 1; k < desiredPoints - 1; k++) {
+              let targetDist = k * step;
+              let index = 0;
+              while (
+                index < lengths.length - 1 &&
+                lengths[index + 1] < targetDist
+              )
+                index++;
+
+              let segmentLen = lengths[index + 1] - lengths[index];
+              let fraction = 0;
+              if (segmentLen > 0)
+                fraction = (targetDist - lengths[index]) / segmentLen;
+
+              let p1 = rawPoints[index];
+              let p2 = rawPoints[index + 1];
+
+              newPoints.push({
+                x: p1.x + (p2.x - p1.x) * fraction,
+                y: p1.y + (p2.y - p1.y) * fraction,
+                customHeading: null,
+                name: "",
+                speed: defaultSpeed,
+              });
+            }
+            let lastP = rawPoints[rawPoints.length - 1];
+            newPoints.push({
+              x: lastP.x,
+              y: lastP.y,
+              customHeading: null,
+              name: "",
+              speed: defaultSpeed,
+            });
+
+            processedPoints = newPoints;
+          }
+        }
+        drawScreen();
+        generateFormattedOutput(processedPoints);
+      }
+
+      // --- HERMITE SPLINE ---
       function getHermiteSplinePoints(points, segments) {
         if (points.length < 2) return points;
         let splinePoints = [];
-
-        // 1. Her nokta için Tangent (Yön/Şiddet) vektörünü hesapla
         let tangents = [];
         for (let i = 0; i < points.length; i++) {
           let tX, tY;
           let magnitude = 0;
-
-          // Şiddet (Magnitude) hesabı: Komşular arası mesafeye göre
-          // Eğer çok kısa mesafede büyük dönüş varsa 'loop' olmasın diye kısıtla.
           let prev = points[i - 1] || points[i];
           let next = points[i + 1] || points[i];
           let dist = Math.hypot(next.x - prev.x, next.y - prev.y);
-          if (i === 0 || i === points.length - 1) dist *= 2; // Uç noktalarda biraz daha güç ver
-          magnitude = dist * 0.5; // Catmull-Rom standardı 0.5'tir
+          if (i === 0 || i === points.length - 1) dist *= 2;
+          magnitude = dist * 0.5;
 
-          // Yön Hesabı
           if (points[i].customHeading !== null) {
-            // KULLANICI AÇISI VARSA: Onu kullan!
-            // VEX Açısı: 0=Sağ, -90=Yukarı.
-            // Math Radyan: Angle * PI / 180.
-            // Canvas Y TERS olduğu için Sinüs'ü ters alacağız.
-            // VEX -90 -> Math 90. Cos(90)=0, Sin(90)=1. Canvas(0, -1) -> Yukarı.
             let angleDeg = -points[i].customHeading;
             let rad = (angleDeg * Math.PI) / 180;
             tX = Math.cos(rad) * magnitude;
-            tY = -Math.sin(rad) * magnitude; // Y ekseni düzeltmesi
+            tY = -Math.sin(rad) * magnitude;
           } else {
-            // OTOMATİK: Komşular arası farka bak (Catmull-Rom usulü)
             tX = (next.x - prev.x) * 0.5;
             tY = (next.y - prev.y) * 0.5;
           }
           tangents.push({ x: tX, y: tY });
         }
 
-        // 2. Noktalar arasını interpolasyon yap (Cubic Hermite)
         for (let i = 0; i < points.length - 1; i++) {
           let p0 = points[i];
           let p1 = points[i + 1];
@@ -770,16 +927,12 @@
             let s = t / segments;
             let s2 = s * s;
             let s3 = s2 * s;
-
-            // Hermite Basis Functions
-            let h1 = 2 * s3 - 3 * s2 + 1; // p0 katsayısı
-            let h2 = s3 - 2 * s2 + s; // m0 katsayısı
-            let h3 = -2 * s3 + 3 * s2; // p1 katsayısı
-            let h4 = s3 - s2; // m1 katsayısı
-
+            let h1 = 2 * s3 - 3 * s2 + 1;
+            let h2 = s3 - 2 * s2 + s;
+            let h3 = -2 * s3 + 3 * s2;
+            let h4 = s3 - s2;
             let x = h1 * p0.x + h2 * m0.x + h3 * p1.x + h4 * m1.x;
             let y = h1 * p0.y + h2 * m0.y + h3 * p1.y + h4 * m1.y;
-
             splinePoints.push({ x: x, y: y });
           }
         }
@@ -799,53 +952,85 @@
         drawGrid();
         drawOriginPoint();
 
-        let visualPoints = rawPoints;
-        let useCurveColor = false;
-
-        // Görselleştirme: Hermite Spline Kullan
-        if (curveToggle.checked && rawPoints.length > 1) {
-          let segments = parseInt(pointCountInput.value) || 20;
-          visualPoints = getHermiteSplinePoints(rawPoints, segments);
-          useCurveColor = true;
-        }
-
-        if (isPointMode || (!isDrawing && rawPoints.length > 0)) {
-          if (rawPoints.length > 1) drawRawPath(visualPoints, useCurveColor);
-
-          for (let i = 0; i < rawPoints.length; i++) {
-            drawFancyPoint(rawPoints[i], i === selectedPointIndex);
-          }
-        } else if (isDrawing) {
+        if (isDrawing && !isPointMode) {
           drawRawPath(rawPoints, false);
+        } else {
+          let visualPoints = processedPoints;
+          let useCurveColor = false;
+
+          if (curveToggle.checked && processedPoints.length > 1) {
+            visualPoints = getHermiteSplinePoints(processedPoints, 20);
+            useCurveColor = true;
+          }
+
+          if (processedPoints.length > 0) {
+            if (processedPoints.length > 1)
+              drawRawPath(visualPoints, useCurveColor);
+
+            for (let i = 0; i < processedPoints.length; i++) {
+              let visAngle = 0;
+              if (processedPoints[i].customHeading !== null) {
+                visAngle = processedPoints[i].customHeading;
+              } else if (processedPoints.length > 1) {
+                if (i < processedPoints.length - 1) {
+                  visAngle = calculateRawHeading(
+                    processedPoints[i],
+                    processedPoints[i + 1]
+                  );
+                } else {
+                  visAngle = calculateRawHeading(
+                    processedPoints[i - 1],
+                    processedPoints[i]
+                  );
+                }
+              }
+              drawFancyPoint(
+                processedPoints[i],
+                i === selectedPointIndex,
+                visAngle
+              );
+            }
+          }
         }
       }
 
-      function drawFancyPoint(p, isSelected) {
+      function drawFancyPoint(p, isSelected, headingDeg) {
+        let radius = 8;
         ctx.beginPath();
         ctx.fillStyle = isSelected
           ? "rgba(255, 159, 67, 1.0)"
-          : "rgba(255, 159, 67, 0.6)";
-        ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
+          : "rgba(255, 159, 67, 0.8)";
+        ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
         ctx.fill();
+
         if (isSelected) {
           ctx.strokeStyle = "#fff";
           ctx.lineWidth = 2;
           ctx.stroke();
+        } else {
+          ctx.strokeStyle = "rgba(0,0,0,0.3)";
+          ctx.lineWidth = 1;
+          ctx.stroke();
         }
 
-        if (p.customHeading !== null) {
-          let angleDeg = -p.customHeading;
-          const angleRad = (angleDeg * Math.PI) / 180;
-          const lineLen = 20;
-          ctx.beginPath();
-          ctx.strokeStyle = "#fff";
-          ctx.lineWidth = 2;
-          ctx.moveTo(p.x, p.y);
-          ctx.lineTo(
-            p.x + Math.cos(angleRad) * lineLen,
-            p.y - Math.sin(angleRad) * lineLen
-          );
-          ctx.stroke();
+        // AÇI ÇİZGİSİ
+        let angleDeg = -headingDeg;
+        const angleRad = (angleDeg * Math.PI) / 180;
+        ctx.beginPath();
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 2;
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(
+          p.x + Math.cos(angleRad) * radius,
+          p.y - Math.sin(angleRad) * radius
+        );
+        ctx.stroke();
+
+        // İSİM ETİKETİ ÇİZİMİ
+        if (p.name && p.name.length > 0) {
+          ctx.fillStyle = "#fff";
+          ctx.font = "bold 12px Arial";
+          ctx.fillText(p.name, p.x + 12, p.y - 12);
         }
       }
 
@@ -885,12 +1070,6 @@
       }
 
       // --- KOD ÜRETİMİ ---
-      function processPath() {
-        if (rawPoints.length < 1) return;
-        // Çıktı yine ana noktalardan oluşur
-        generateFormattedOutput(rawPoints);
-      }
-
       function getCoordinatesInches(point) {
         let pixelDX = point.x - CANVAS_SIZE / 2;
         let pixelDY = CANVAS_SIZE / 2 - point.y;
@@ -910,7 +1089,6 @@
       }
 
       function generateFormattedOutput(points) {
-        const speedVar = speedInput.value;
         let outputText = "chassis.pid_odom_set({\n";
 
         let continuousAngle = 0;
@@ -954,7 +1132,16 @@
           let yF = Math.round(coords.y * 100) / 100;
           let aF = Math.round(angleFinal * 100) / 100;
 
-          const lineData = `{${xF}_in, ${yF}_in, ${aF}_deg, fwd, ${speedVar}}`;
+          // SPEED AYARI: Noktanın özel hızı varsa onu kullan, yoksa global varsayılanı kullan
+          let ptSpeed = currentP.speed || globalSpeedInput.value;
+
+          let lineData = `{${xF}_in, ${yF}_in, ${aF}_deg, fwd, ${ptSpeed}}`;
+
+          // İSİM YORUMU
+          if (currentP.name && currentP.name.length > 0) {
+            lineData += `, // ${currentP.name}`;
+          }
+
           outputText += (i === 0 ? "      " : ",\n      ") + lineData;
         }
 
