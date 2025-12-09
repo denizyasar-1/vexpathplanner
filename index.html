@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VEX Path Planner - Pro Editor</title>
+    <title>VEX Path Planner - Pro Editor v4</title>
     <style>
       /* GENEL SAYFA DÜZENİ */
       body {
@@ -103,11 +103,14 @@
       input:checked + .slider {
         background-color: #007bff;
       }
+      input:checked + .slider.green {
+        background-color: #28a745;
+      }
       input:checked + .slider:before {
         transform: translateX(18px);
       }
 
-      /* ANA DÜZEN (3 SÜTUN) */
+      /* ANA DÜZEN */
       .main-layout {
         display: flex;
         gap: 15px;
@@ -116,7 +119,6 @@
         height: calc(100vh - 80px);
       }
 
-      /* 1. SÜTUN: CANVAS */
       .canvas-wrapper {
         position: relative;
         border: 4px solid #444;
@@ -131,7 +133,6 @@
         left: 0;
       }
 
-      /* 2. SÜTUN: ORTA AYAR MENÜSÜ */
       .settings-panel {
         width: 240px;
         background-color: #252526;
@@ -145,7 +146,6 @@
         box-sizing: border-box;
         overflow-y: auto;
       }
-
       .settings-panel h3 {
         margin: 0;
         font-size: 1rem;
@@ -154,21 +154,17 @@
         border-bottom: 1px solid #444;
         padding-bottom: 5px;
       }
-
       .setting-group {
         background: #333;
         padding: 8px;
         border-radius: 6px;
       }
-
       .setting-group label {
         display: block;
         font-size: 0.85rem;
         color: #aaa;
         margin-bottom: 4px;
       }
-
-      /* Koordinat Inputları */
       .coord-inputs {
         display: flex;
         gap: 5px;
@@ -187,7 +183,6 @@
         font-size: 0.8rem;
         color: #888;
       }
-
       .angle-control {
         display: flex;
         align-items: center;
@@ -204,14 +199,12 @@
         font-size: 0.8rem;
         background-color: #555;
       }
-
       input[type="range"] {
         width: 100%;
         accent-color: #ff9f43;
         margin: 5px 0;
       }
 
-      /* 3. SÜTUN: ÇIKTI PANELİ */
       .output-panel {
         width: 320px;
         background-color: #2d2d2d;
@@ -223,7 +216,6 @@
         height: 600px;
         box-sizing: border-box;
       }
-
       .tools-menu {
         background: #333;
         padding: 8px;
@@ -237,7 +229,6 @@
         font-size: 0.8rem;
         padding: 5px;
       }
-
       textarea {
         flex-grow: 1;
         background-color: #111;
@@ -249,8 +240,6 @@
         white-space: pre;
         resize: none;
       }
-
-      /* BUTONLAR */
       .btn-group {
         display: flex;
         gap: 5px;
@@ -288,7 +277,7 @@
     </style>
   </head>
   <body>
-    <h1>VEX Path Planner - Pro Editor</h1>
+    <h1>VEX Path Planner - Pro Editor v4</h1>
 
     <div class="top-controls">
       <div class="switch-container">
@@ -307,15 +296,23 @@
 
       <span style="border-left: 1px solid #555; height: 20px"></span>
 
-      <label for="pointCountInput">Yumuşatma:</label>
+      <div class="switch-container">
+        <span style="font-size: 12px; color: #aaa">GÖRSEL:</span>
+        <label class="switch">
+          <input type="checkbox" id="curveToggle" onchange="updateSettings()" />
+          <span class="slider green"></span>
+        </label>
+        <span id="curveLabel">Düz Çizgi</span>
+      </div>
+
+      <label for="pointCountInput">Vis.Kalite:</label>
       <input
         type="number"
         id="pointCountInput"
         value="20"
-        min="2"
-        max="100"
+        min="5"
+        max="50"
         onchange="updateSettings()"
-        disabled
       />
 
       <label for="speedInput">Hız:</label>
@@ -434,10 +431,10 @@
         <h3 style="margin: 0; color: #fff; font-size: 0.9rem">Hızlı Araçlar</h3>
         <div class="tools-menu">
           <button class="tool-btn" onclick="mirrorPath('X')">
-            ↔ Yatay Aynala (X)
+            ↔ Yatay Aynala
           </button>
           <button class="tool-btn" onclick="mirrorPath('Y')">
-            ↕ Dikey Aynala (Y)
+            ↕ Dikey Aynala
           </button>
         </div>
 
@@ -464,8 +461,9 @@
       const pointCountInput = document.getElementById("pointCountInput");
       const speedInput = document.getElementById("speedInput");
       const modeLabel = document.getElementById("modeLabel");
+      const curveToggle = document.getElementById("curveToggle");
+      const curveLabel = document.getElementById("curveLabel");
 
-      // Panel UI
       const noSelectionMsg = document.getElementById("noSelectionMsg");
       const selectionControls = document.getElementById("selectionControls");
       const selectedIndexDisplay = document.getElementById(
@@ -482,10 +480,9 @@
       const FIELD_SIZE_INCHES = 144;
       const CANVAS_SIZE = 600;
       const PIXELS_PER_INCH = CANVAS_SIZE / FIELD_SIZE_INCHES;
-      const OFFSET_X = -48; // Orijin kaydırma
+      const OFFSET_X = -48;
       const OFFSET_Y = 0;
 
-      // Veri: { x, y, customHeading }
       let rawPoints = [];
       let isPointMode = true;
       let isDrawing = false;
@@ -503,17 +500,27 @@
         if (isPointMode) {
           modeLabel.innerText = "Nokta Ekleme";
           canvas.style.cursor = "default";
-          pointCountInput.disabled = true;
           document.getElementById("undoBtn").style.display = "block";
         } else {
           modeLabel.innerText = "Serbest Çizim";
           canvas.style.cursor = "crosshair";
-          pointCountInput.disabled = false;
           selectedPointIndex = -1;
           updateSelectionUI();
           document.getElementById("undoBtn").style.display = "none";
         }
         clearCanvas();
+      }
+
+      function updateSettings() {
+        if (curveToggle.checked) {
+          curveLabel.innerText = "Akıllı Eğri";
+          curveLabel.style.color = "#28a745";
+        } else {
+          curveLabel.innerText = "Düz Çizgi";
+          curveLabel.style.color = "#aaa";
+        }
+
+        if (rawPoints.length > 0) processPath();
       }
 
       // --- MOUSE EVENTLERİ ---
@@ -522,9 +529,7 @@
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;
 
-        // Tıklama Kontrolü (Hit Test)
         let clickedIndex = -1;
-        // Ters döngü ile üstteki noktayı önce yakala
         for (let i = rawPoints.length - 1; i >= 0; i--) {
           const dist = Math.hypot(rawPoints[i].x - mx, rawPoints[i].y - my);
           if (dist < 15) {
@@ -534,13 +539,11 @@
         }
 
         if (clickedIndex !== -1) {
-          // Nokta SEÇİLDİ
           selectedPointIndex = clickedIndex;
           updateSelectionUI();
           drawScreen();
           return;
         } else {
-          // Boşluğa tıklandı -> Seçimi kaldır
           if (selectedPointIndex !== -1) {
             selectedPointIndex = -1;
             updateSelectionUI();
@@ -549,7 +552,6 @@
           }
         }
 
-        // Nokta Ekleme
         if (isPointMode) {
           addRawPoint(mx, my);
           selectedPointIndex = rawPoints.length - 1;
@@ -570,7 +572,7 @@
           const rect = canvas.getBoundingClientRect();
           addRawPoint(e.clientX - rect.left, e.clientY - rect.top);
           drawScreen();
-          drawRawPath();
+          drawRawPath(rawPoints, false);
         }
       });
 
@@ -614,59 +616,36 @@
         outputBox.value = "// Nokta ekleyin...";
       }
 
-      // --- YENİ: AYNALAMA FONKSİYONLARI ---
       function mirrorPath(axis) {
         if (rawPoints.length === 0) return;
-
-        // Canvas merkezi (piksel olarak)
         const cx = CANVAS_SIZE / 2;
         const cy = CANVAS_SIZE / 2;
 
         rawPoints.forEach((p) => {
           if (axis === "X") {
-            // X ekseni etrafında aynalama (Aslında Y değerini ters çevirme)
-            // Ama görselde "Yatay Aynalama" genellikle sahanın solundan sağına geçiştir (X değişir).
-            // İstenen: "Haritanın ortasından geçen X Y eksenine"
-            // X eksenine göre aynalamak -> Y değerini tersine çevirmektir. (Dikey değişim)
-            // Y eksenine göre aynalamak -> X değerini tersine çevirmektir. (Yatay değişim)
-
-            // Kullanıcı "Yatay Aynala" dediğinde genelde "Sol tarafı sağ tarafa" kastediyor.
-            // Bu yüzden X koordinatını ters çevireceğiz.
             let distFromCenter = p.x - cx;
             p.x = cx - distFromCenter;
-
-            // Açı varsa onu da yansıtmamız lazım
             if (p.customHeading !== null) {
-              // Yatay aynalamada (Sağ<->Sol), açı da Y eksenine göre yansır
-              // 0 -> 180, 90 -> 90, -90 -> -90
               let a = p.customHeading;
               if (a > 0) p.customHeading = 180 - a;
               else p.customHeading = -180 - a;
-
-              // Normalize -180..180
               while (p.customHeading > 180) p.customHeading -= 360;
               while (p.customHeading < -180) p.customHeading += 360;
             }
           } else if (axis === "Y") {
-            // Dikey Aynalama (Yukarı<->Aşağı) -> Y koordinatı değişir
             let distFromCenter = p.y - cy;
             p.y = cy - distFromCenter;
-
             if (p.customHeading !== null) {
-              // Dikey aynalamada açı X eksenine göre yansır
-              // 0 -> 0, 90 -> -90
               p.customHeading = -p.customHeading;
             }
           }
         });
-
         drawScreen();
         processPath();
-        // Eğer seçili nokta varsa UI güncelle
         if (selectedPointIndex !== -1) updateSelectionUI();
       }
 
-      // --- ARAYÜZ GÜNCELLEME ---
+      // --- UI GÜNCELLEME ---
       function updateSelectionUI() {
         if (selectedPointIndex !== -1) {
           noSelectionMsg.style.display = "none";
@@ -676,8 +655,6 @@
           const coords = getCoordinatesInches(p);
 
           selectedIndexDisplay.innerText = "#" + (selectedPointIndex + 1);
-
-          // İnputlara değeri yaz
           coordXInput.value = coords.x.toFixed(2);
           coordYInput.value = coords.y.toFixed(2);
 
@@ -695,25 +672,17 @@
         }
       }
 
-      // --- YENİ: MANUEL KOORDİNAT DEĞİŞİMİ ---
       function manualCoordChange() {
         if (selectedPointIndex === -1) return;
-
         let newXInches = parseFloat(coordXInput.value);
         let newYInches = parseFloat(coordYInput.value);
-
         if (isNaN(newXInches) || isNaN(newYInches)) return;
-
-        // İnç -> Piksel Dönüşümü
-        // x_pixel = (inches + OFFSET_X) * PIXELS_PER_INCH + CANVAS/2
-        // (Fakat bizim getCoordinatesInches formülünün tersi)
 
         let pX = (newXInches + OFFSET_X) * PIXELS_PER_INCH + CANVAS_SIZE / 2;
         let pY = CANVAS_SIZE / 2 - (newYInches + OFFSET_Y) * PIXELS_PER_INCH;
 
         rawPoints[selectedPointIndex].x = pX;
         rawPoints[selectedPointIndex].y = pY;
-
         drawScreen();
         processPath();
       }
@@ -728,20 +697,15 @@
         }
       }
 
-      // YENİ: Hızlı Döndürme
       function rotateAngle(delta) {
         if (selectedPointIndex !== -1) {
           let current = rawPoints[selectedPointIndex].customHeading;
-          if (current === null) current = 0; // Eğer otomatikteyse 0'dan başla
-
+          if (current === null) current = 0;
           let newVal = current + delta;
-
-          // Normalize
           while (newVal > 180) newVal -= 360;
           while (newVal < -180) newVal += 360;
-
           rawPoints[selectedPointIndex].customHeading = newVal;
-          updateSelectionUI(); // Slider'ı güncelle
+          updateSelectionUI();
           drawScreen();
           processPath();
         }
@@ -756,8 +720,70 @@
         }
       }
 
-      function updateSettings() {
-        if (rawPoints.length > 0) processPath();
+      // --- AKILLI HERMITE SPLINE ALGORİTMASI ---
+      // Açıyı (Tangent) hesaba katan yeni eğri fonksiyonu
+      function getHermiteSplinePoints(points, segments) {
+        if (points.length < 2) return points;
+        let splinePoints = [];
+
+        // 1. Her nokta için Tangent (Yön/Şiddet) vektörünü hesapla
+        let tangents = [];
+        for (let i = 0; i < points.length; i++) {
+          let tX, tY;
+          let magnitude = 0;
+
+          // Şiddet (Magnitude) hesabı: Komşular arası mesafeye göre
+          // Eğer çok kısa mesafede büyük dönüş varsa 'loop' olmasın diye kısıtla.
+          let prev = points[i - 1] || points[i];
+          let next = points[i + 1] || points[i];
+          let dist = Math.hypot(next.x - prev.x, next.y - prev.y);
+          if (i === 0 || i === points.length - 1) dist *= 2; // Uç noktalarda biraz daha güç ver
+          magnitude = dist * 0.5; // Catmull-Rom standardı 0.5'tir
+
+          // Yön Hesabı
+          if (points[i].customHeading !== null) {
+            // KULLANICI AÇISI VARSA: Onu kullan!
+            // VEX Açısı: 0=Sağ, -90=Yukarı.
+            // Math Radyan: Angle * PI / 180.
+            // Canvas Y TERS olduğu için Sinüs'ü ters alacağız.
+            // VEX -90 -> Math 90. Cos(90)=0, Sin(90)=1. Canvas(0, -1) -> Yukarı.
+            let angleDeg = -points[i].customHeading;
+            let rad = (angleDeg * Math.PI) / 180;
+            tX = Math.cos(rad) * magnitude;
+            tY = -Math.sin(rad) * magnitude; // Y ekseni düzeltmesi
+          } else {
+            // OTOMATİK: Komşular arası farka bak (Catmull-Rom usulü)
+            tX = (next.x - prev.x) * 0.5;
+            tY = (next.y - prev.y) * 0.5;
+          }
+          tangents.push({ x: tX, y: tY });
+        }
+
+        // 2. Noktalar arasını interpolasyon yap (Cubic Hermite)
+        for (let i = 0; i < points.length - 1; i++) {
+          let p0 = points[i];
+          let p1 = points[i + 1];
+          let m0 = tangents[i];
+          let m1 = tangents[i + 1];
+
+          for (let t = 0; t <= segments; t++) {
+            let s = t / segments;
+            let s2 = s * s;
+            let s3 = s2 * s;
+
+            // Hermite Basis Functions
+            let h1 = 2 * s3 - 3 * s2 + 1; // p0 katsayısı
+            let h2 = s3 - 2 * s2 + s; // m0 katsayısı
+            let h3 = -2 * s3 + 3 * s2; // p1 katsayısı
+            let h4 = s3 - s2; // m1 katsayısı
+
+            let x = h1 * p0.x + h2 * m0.x + h3 * p1.x + h4 * m1.x;
+            let y = h1 * p0.y + h2 * m0.y + h3 * p1.y + h4 * m1.y;
+
+            splinePoints.push({ x: x, y: y });
+          }
+        }
+        return splinePoints;
       }
 
       // --- ÇİZİM ---
@@ -771,15 +797,26 @@
           ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
         }
         drawGrid();
-        drawOrigin();
+        drawOriginPoint();
+
+        let visualPoints = rawPoints;
+        let useCurveColor = false;
+
+        // Görselleştirme: Hermite Spline Kullan
+        if (curveToggle.checked && rawPoints.length > 1) {
+          let segments = parseInt(pointCountInput.value) || 20;
+          visualPoints = getHermiteSplinePoints(rawPoints, segments);
+          useCurveColor = true;
+        }
 
         if (isPointMode || (!isDrawing && rawPoints.length > 0)) {
-          if (rawPoints.length > 1) drawRawPath();
+          if (rawPoints.length > 1) drawRawPath(visualPoints, useCurveColor);
+
           for (let i = 0; i < rawPoints.length; i++) {
             drawFancyPoint(rawPoints[i], i === selectedPointIndex);
           }
         } else if (isDrawing) {
-          drawRawPath();
+          drawRawPath(rawPoints, false);
         }
       }
 
@@ -790,41 +827,32 @@
           : "rgba(255, 159, 67, 0.6)";
         ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
         ctx.fill();
-
         if (isSelected) {
           ctx.strokeStyle = "#fff";
           ctx.lineWidth = 2;
           ctx.stroke();
         }
 
-        // Açı Çizgisi
-        let angleDeg = 0;
         if (p.customHeading !== null) {
-          angleDeg = -p.customHeading;
-        } else {
-          // Otomatik açı gösterimi yok (gerekirse eklenebilir)
-          return;
+          let angleDeg = -p.customHeading;
+          const angleRad = (angleDeg * Math.PI) / 180;
+          const lineLen = 20;
+          ctx.beginPath();
+          ctx.strokeStyle = "#fff";
+          ctx.lineWidth = 2;
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(
+            p.x + Math.cos(angleRad) * lineLen,
+            p.y - Math.sin(angleRad) * lineLen
+          );
+          ctx.stroke();
         }
-
-        const angleRad = (angleDeg * Math.PI) / 180;
-        const lineLen = 18;
-        ctx.beginPath();
-        ctx.strokeStyle = "#fff";
-        ctx.lineWidth = 2;
-        ctx.moveTo(p.x, p.y);
-        ctx.lineTo(
-          p.x + Math.cos(angleRad) * lineLen,
-          p.y - Math.sin(angleRad) * lineLen
-        );
-        ctx.stroke();
       }
 
       function drawGrid() {
         ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
         ctx.lineWidth = 1;
         const tileSize = 24 * PIXELS_PER_INCH;
-
-        // Ana Grid
         for (let i = 1; i < 6; i++) {
           ctx.beginPath();
           ctx.moveTo(i * tileSize, 0);
@@ -835,21 +863,9 @@
           ctx.lineTo(CANVAS_SIZE, i * tileSize);
           ctx.stroke();
         }
-
-        // Merkez Çizgileri (Aynalama Referansı)
-        ctx.strokeStyle = "rgba(255, 0, 0, 0.3)";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(CANVAS_SIZE / 2, 0);
-        ctx.lineTo(CANVAS_SIZE / 2, CANVAS_SIZE);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(0, CANVAS_SIZE / 2);
-        ctx.lineTo(CANVAS_SIZE, CANVAS_SIZE / 2);
-        ctx.stroke();
       }
 
-      function drawOrigin() {
+      function drawOriginPoint() {
         const ox = CANVAS_SIZE / 2 + OFFSET_X * PIXELS_PER_INCH;
         const oy = CANVAS_SIZE / 2 - OFFSET_Y * PIXELS_PER_INCH;
         ctx.fillStyle = "yellow";
@@ -858,22 +874,21 @@
         ctx.fill();
       }
 
-      function drawRawPath() {
-        if (rawPoints.length < 2) return;
+      function drawRawPath(pts, isCurved) {
+        if (pts.length < 2) return;
         ctx.beginPath();
-        ctx.strokeStyle = "cyan";
+        ctx.strokeStyle = isCurved ? "#28a745" : "cyan";
         ctx.lineWidth = 2;
-        ctx.moveTo(rawPoints[0].x, rawPoints[0].y);
-        for (let i = 1; i < rawPoints.length; i++)
-          ctx.lineTo(rawPoints[i].x, rawPoints[i].y);
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
         ctx.stroke();
       }
 
-      // --- HESAPLAMALAR ---
+      // --- KOD ÜRETİMİ ---
       function processPath() {
         if (rawPoints.length < 1) return;
-        let finalPoints = isPointMode ? rawPoints.slice() : rawPoints.slice();
-        generateFormattedOutput(finalPoints);
+        // Çıktı yine ana noktalardan oluşur
+        generateFormattedOutput(rawPoints);
       }
 
       function getCoordinatesInches(point) {
@@ -906,7 +921,10 @@
           let coords = getCoordinatesInches(currentP);
           let angleFinal = 0;
 
-          if (currentP.customHeading !== null) {
+          if (
+            currentP.customHeading !== null &&
+            currentP.customHeading !== undefined
+          ) {
             angleFinal = currentP.customHeading;
             continuousAngle = angleFinal;
             previousRawAngle = angleFinal;
