@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VEX Path Planner - Pro Editor v9</title>
+    <title>VEX Path Planner - Pro Editor v13</title>
     <style>
       /* GENEL SAYFA DÜZENİ */
       body {
@@ -297,7 +297,7 @@
     </style>
   </head>
   <body>
-    <h1>VEX Path Planner - Pro Editor v9</h1>
+    <h1>VEX Path Planner - Pro Editor v13</h1>
 
     <div class="top-controls">
       <div class="switch-container">
@@ -410,7 +410,7 @@
           </div>
 
           <div class="setting-group">
-            <label>Konum (X, Y inç):</label>
+            <label>Konum (X=Dikey, Y=Yatay):</label>
             <div class="coord-inputs">
               <span>X:</span>
               <input
@@ -470,7 +470,7 @@
                 text-align: center;
               "
             >
-              Sağ:0, Yukarı:-90, Sol:180, Aşağı:90
+              Sağ(Y+):0, Aşağı(X+):90, Yukarı:-90
             </div>
           </div>
 
@@ -553,7 +553,7 @@
 
       let isPointMode = true;
       let isDrawing = false;
-      let isDragging = false; // YENİ: Sürükleme durumu
+      let isDragging = false;
       let selectedPointIndex = -1;
 
       bgImage.onload = function () {
@@ -594,7 +594,7 @@
 
       function updateGlobalSpeed() {}
 
-      // --- MOUSE EVENTLERİ (GÜNCELLENDİ: SÜRÜKLEME) ---
+      // --- MOUSE EVENTLERİ ---
       canvas.addEventListener("mousedown", (e) => {
         const rect = canvas.getBoundingClientRect();
         const mx = e.clientX - rect.left;
@@ -602,20 +602,16 @@
 
         let targetList = isPointMode || isDrawing ? rawPoints : processedPoints;
 
-        // Önce bir noktaya tıklandı mı diye bak
         let clickedIndex = -1;
-        // Ters döngü: Üst üste binenlerde en üsttekini (son ekleneni) seç
         for (let i = targetList.length - 1; i >= 0; i--) {
           const dist = Math.hypot(targetList[i].x - mx, targetList[i].y - my);
           if (dist < 15) {
-            // 15px tolerans
             clickedIndex = i;
             break;
           }
         }
 
         if (clickedIndex !== -1) {
-          // NOKTA BULUNDU -> SEÇ VE SÜRÜKLEMEYİ BAŞLAT
           selectedPointIndex = clickedIndex;
           isDragging = true;
           updateSelectionUI();
@@ -623,7 +619,6 @@
           return;
         }
 
-        // Boşluğa tıklandıysa ve nokta seçiliyse -> Seçimi kaldır
         if (selectedPointIndex !== -1) {
           selectedPointIndex = -1;
           updateSelectionUI();
@@ -631,16 +626,13 @@
           return;
         }
 
-        // Boşluğa tıklandı ve seçim yok -> YENİ NOKTA EKLE
         if (isPointMode) {
           addRawPoint(mx, my);
           processPath();
           selectedPointIndex = rawPoints.length - 1;
-          // Yeni eklenen nokta da sürüklenebilir olsun
           isDragging = true;
           updateSelectionUI();
         } else {
-          // Serbest çizim başlat
           isDrawing = true;
           rawPoints = [];
           processedPoints = [];
@@ -655,7 +647,6 @@
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;
 
-        // 1. Durum: NOKTA SÜRÜKLENİYOR
         if (isDragging && selectedPointIndex !== -1) {
           let targetList =
             isPointMode || isDrawing ? rawPoints : processedPoints;
@@ -663,22 +654,16 @@
             targetList[selectedPointIndex].x = mx;
             targetList[selectedPointIndex].y = my;
 
-            // Koordinatları inputlara yansıt
             const coords = getCoordinatesInches(targetList[selectedPointIndex]);
             coordXInput.value = coords.x.toFixed(2);
             coordYInput.value = coords.y.toFixed(2);
 
-            // Ekranı ve kodu güncelle (Resample yapmadan, sadece pozisyon güncelle)
             drawScreen();
-            // Eğer nokta modundaysak processedPoints = rawPoints olduğu için kod da güncellenmeli
-            // Serbest çizim modunda processedPoints'i güncelliyoruz, kod yine güncellenmeli
-            // processPath(true) -> true: resampling yapma, sadece çıktıyı güncelle
             if (!isDrawing) processPath(true);
           }
           return;
         }
 
-        // 2. Durum: SERBEST ÇİZİM YAPILIYOR
         if (!isPointMode && isDrawing) {
           addRawPoint(mx, my);
           drawScreen();
@@ -686,19 +671,14 @@
       });
 
       canvas.addEventListener("mouseup", () => {
-        // Sürükleme bitişi
         if (isDragging) {
           isDragging = false;
-          // Serbest modda, processedPoints üzerindeki sürükleme bittiğinde her şey tamam.
-          // Nokta modunda zaten rawPoints güncellendi.
-          // Sadece final bir processPath gerekebilir.
           if (!isDrawing) processPath(true);
         }
 
-        // Serbest çizim bitişi
         if (!isPointMode && isDrawing) {
           isDrawing = false;
-          processPath(); // Resampling yap
+          processPath();
         }
       });
 
@@ -761,19 +741,29 @@
 
         targetList.forEach((p) => {
           if (axis === "X") {
+            // X (Dikey) Eksen Aynalama -> YATAY Flip
             let distFromCenter = p.x - cx;
             p.x = cx - distFromCenter;
             if (p.customHeading !== null) {
+              // Açı aynalama: Y ekseni etrafında (Sağ<->Sol)
+              // Sağ(0) -> Sol(180).
+              // Aşağı(90) -> Aşağı(90).
+              // Yukarı(-90) -> Yukarı(-90).
+              // Formül: 180 - Angle.
               let a = p.customHeading;
-              if (a > 0) p.customHeading = 180 - a;
-              else p.customHeading = -180 - a;
+              p.customHeading = 180 - a;
               while (p.customHeading > 180) p.customHeading -= 360;
               while (p.customHeading < -180) p.customHeading += 360;
             }
           } else if (axis === "Y") {
+            // Y (Yatay) Eksen Aynalama -> DİKEY Flip
             let distFromCenter = p.y - cy;
             p.y = cy - distFromCenter;
             if (p.customHeading !== null) {
+              // Açı aynalama: X ekseni etrafında (Yukarı<->Aşağı)
+              // Sağ(0) -> Sağ(0).
+              // Aşağı(90) -> Yukarı(-90).
+              // Formül: -Angle.
               p.customHeading = -p.customHeading;
             }
           }
@@ -866,8 +856,9 @@
         let newYInches = parseFloat(coordYInput.value);
         if (isNaN(newXInches) || isNaN(newYInches)) return;
 
-        let pX = (newXInches + OFFSET_X) * PIXELS_PER_INCH + CANVAS_SIZE / 2;
-        let pY = CANVAS_SIZE / 2 - (newYInches + OFFSET_Y) * PIXELS_PER_INCH;
+        // İnç -> Piksel
+        let pX = newYInches * PIXELS_PER_INCH + CANVAS_SIZE / 2;
+        let pY = newXInches * PIXELS_PER_INCH + CANVAS_SIZE / 2;
 
         list[selectedPointIndex].x = pX;
         list[selectedPointIndex].y = pY;
@@ -999,10 +990,15 @@
           magnitude = dist * 0.5;
 
           if (points[i].customHeading !== null) {
-            let angleDeg = -points[i].customHeading;
-            let rad = (angleDeg * Math.PI) / 180;
+            // AÇI REFERANSI: Sağ (0).
+            // Canvas Açı Referansı: Sağ (0), Aşağı (90)
+            // Bu tam eşleşiyor!
+            // 0 -> cos(0)=1, sin(0)=0 (Sağ).
+            // 90 -> cos(90)=0, sin(90)=1 (Aşağı).
+
+            let rad = (points[i].customHeading * Math.PI) / 180;
             tX = Math.cos(rad) * magnitude;
-            tY = -Math.sin(rad) * magnitude;
+            tY = Math.sin(rad) * magnitude;
           } else {
             tX = (next.x - prev.x) * 0.5;
             tY = (next.y - prev.y) * 0.5;
@@ -1032,7 +1028,6 @@
         return splinePoints;
       }
 
-      // --- ÇİZİM ---
       function drawScreen() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -1113,22 +1108,16 @@
           ctx.stroke();
         }
 
-        let angleDeg = -headingDeg;
-        const angleRad = (angleDeg * Math.PI) / 180;
+        // GÖRSELLEŞTİRME: Sağ=0, Aşağı=90.
+        // Canvas ile birebir uyumlu.
+        let rad = (headingDeg * Math.PI) / 180;
+
         ctx.beginPath();
         ctx.strokeStyle = "#fff";
         ctx.lineWidth = 2;
         ctx.moveTo(p.x, p.y);
-        ctx.lineTo(
-          p.x + Math.cos(angleRad) * radius,
-          p.y - Math.sin(angleRad) * radius
-        );
+        ctx.lineTo(p.x + Math.cos(rad) * radius, p.y + Math.sin(rad) * radius);
         ctx.stroke();
-
-        // İSİM GÖSTERME KURALI:
-        // 1. Sadece SEÇİLİ iken gösterilsin.
-        // 2. Veya Başlangıç noktası ise (opsiyonel, ama genelde istenir)
-        // Kullanıcı isteği: "noktalar seçili olmadıkları sürece isimleri gözükmesin"
 
         if (isSelected) {
           let displayName = p.name;
@@ -1192,22 +1181,34 @@
         ctx.stroke();
       }
 
-      function getCoordinatesInches(point) {
-        let pixelDX = point.x - CANVAS_SIZE / 2;
-        let pixelDY = CANVAS_SIZE / 2 - point.y;
-        return {
-          x: pixelDX / PIXELS_PER_INCH - OFFSET_X,
-          y: pixelDY / PIXELS_PER_INCH - OFFSET_Y,
-        };
+      // --- AÇI HESABI ---
+      function calculateRawHeading(p1, p2) {
+        let dx_px = p2.x - p1.x; // Yatay Fark (Sağ+)
+        let dy_px = p2.y - p1.y; // Dikey Fark (Aşağı+)
+
+        // Hedefimiz: Sağ=0, Aşağı=90.
+        // atan2(y, x) -> Sağ=0, Aşağı=90.
+        // CanvasY=Aşağı, CanvasX=Sağ.
+        // Bu yüzden atan2(dy_px, dx_px) tam olarak istediğimizi verir.
+
+        let rad = Math.atan2(dy_px, dx_px);
+        let deg = (rad * 180) / Math.PI;
+        return deg;
       }
 
-      function calculateRawHeading(p1, p2) {
-        const c1 = getCoordinatesInches(p1);
-        const c2 = getCoordinatesInches(p2);
-        const dy = c2.y - c1.y;
-        const dx = c2.x - c1.x;
-        let mathDeg = (Math.atan2(dy, dx) * 180) / Math.PI;
-        return -mathDeg;
+      // --- KOORDİNAT HESABI (GÜNCELLENDİ: X=Dikey, Y=Yatay) ---
+      function getCoordinatesInches(point) {
+        let pixelX = point.x - CANVAS_SIZE / 2; // Yatay Piksel
+        let pixelY = point.y - CANVAS_SIZE / 2; // Dikey Piksel
+
+        // İSTENEN:
+        // Dikey = X (Aşağı doğru artar -> pixelY)
+        // Yatay = Y (Sağa doğru artar -> pixelX)
+
+        let inchesY = pixelX / PIXELS_PER_INCH; // Yatay -> Y
+        let inchesX = pixelY / PIXELS_PER_INCH; // Dikey -> X
+
+        return { x: inchesX, y: inchesY };
       }
 
       function generateFormattedOutput(points) {
@@ -1218,8 +1219,6 @@
         }
 
         let outputText = "";
-        let continuousAngle = 0;
-        let previousRawAngle = 0;
 
         for (let i = 0; i < points.length; i++) {
           let currentP = points[i];
@@ -1231,28 +1230,14 @@
             currentP.customHeading !== undefined
           ) {
             angleFinal = currentP.customHeading;
-            continuousAngle = angleFinal;
-            previousRawAngle = angleFinal;
           } else {
-            let currentRawAngle = 0;
             if (points.length > 1) {
               if (i < points.length - 1) {
-                currentRawAngle = calculateRawHeading(currentP, points[i + 1]);
+                angleFinal = calculateRawHeading(currentP, points[i + 1]);
               } else {
-                currentRawAngle = calculateRawHeading(points[i - 1], currentP);
+                angleFinal = calculateRawHeading(points[i - 1], currentP);
               }
             }
-
-            if (i === 0) {
-              continuousAngle = currentRawAngle;
-            } else {
-              let delta = currentRawAngle - previousRawAngle;
-              while (delta > 180) delta -= 360;
-              while (delta < -180) delta += 360;
-              continuousAngle += delta;
-            }
-            angleFinal = continuousAngle;
-            previousRawAngle = currentRawAngle;
           }
 
           let xF = Math.round(coords.x * 100) / 100;
@@ -1260,6 +1245,7 @@
           let aF = Math.round(angleFinal * 100) / 100;
 
           if (i === 0) {
+            // X=Dikey, Y=Yatay
             outputText += `chassis.odom_xyt_set(${xF}_in, ${yF}_in, ${aF}_deg);\n\n`;
             outputText += "chassis.pid_odom_set({\n";
           } else {
