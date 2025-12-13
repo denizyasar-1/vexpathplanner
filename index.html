@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VEX Path Planner - Pro Editor v18 (Perfect Center)</title>
+    <title>VEX Path Planner - Pro Editor v19 (Robot Sim)</title>
     <style>
       /* GENEL SAYFA DÜZENİ */
       body {
@@ -76,6 +76,41 @@
       }
       .dropdown:hover .dropbtn {
         background-color: #0056b3;
+      }
+
+      /* SOL ROBOT MENÜSÜ (YENİ) */
+      .left-sidebar {
+        position: absolute;
+        top: 70px; /* Dosya menüsünün altı */
+        left: 15px;
+        width: 180px;
+        background-color: #252526;
+        border: 1px solid #3e3e42;
+        border-radius: 8px;
+        padding: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        z-index: 90;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+      }
+      .left-sidebar h3 {
+        margin: 0 0 5px 0;
+        font-size: 0.9rem;
+        color: #d63384; /* Ayırt edici renk */
+        border-bottom: 1px solid #444;
+        padding-bottom: 5px;
+        text-align: center;
+      }
+      .left-sidebar input[type="number"] {
+        width: 100%;
+        background: #444;
+        border: 1px solid #555;
+        color: #fff;
+        padding: 4px;
+        border-radius: 4px;
+        text-align: center;
+        box-sizing: border-box;
       }
 
       /* ÜST KONTROL BAR */
@@ -158,6 +193,9 @@
       }
       input:checked + .slider.green {
         background-color: #28a745;
+      }
+      input:checked + .slider.pink {
+        background-color: #d63384;
       }
       input:checked + .slider:before {
         transform: translateX(18px);
@@ -268,7 +306,7 @@
         border-radius: 4px;
       }
 
-      /* KNOB CSS (TAM MERKEZLİ VERSİYON) */
+      /* KNOB CSS */
       .knob-wrapper {
         display: flex;
         justify-content: center;
@@ -312,30 +350,15 @@
         background-color: #ff9f43;
         border-radius: 50%;
         border: 2px solid #fff;
-
-        /* DÜZELTME: Pikselle "right" vermek yerine hesaplayarak yerleştirme */
         left: 50%;
         top: 50%;
-
-        /* HESAPLAMA MANTIĞI:
-           1. Önce (-50%, -50%) ile topu tam merkeze (0 noktasına) alıyoruz.
-           2. Sonra Yarıçap kadar (40.5px) sağa (X+) itiyoruz.
-           
-           Yarıçap Hesabı:
-           - Track Width: 85px (box-sizing: border-box)
-           - Border: 4px.
-           - Dış Yarıçap: 42.5px.
-           - Track çizgisinin merkezi (border'ın ortası): 42.5 - 2 = 40.5px.
-        */
         transform: translate(calc(-50% + 40.5px), -50%);
-
         cursor: grab;
         box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
         pointer-events: auto;
         transition: background-color 0.2s;
       }
 
-      /* OK İŞARETİ (Triangle) - SAĞA BAKAN */
       .knob-handle::after {
         content: "";
         position: absolute;
@@ -450,7 +473,46 @@
       />
     </div>
 
-    <h1>VEX Path Planner - Pro Editor v18</h1>
+    <div class="left-sidebar">
+      <h3>Robot Görünümü</h3>
+      <div class="setting-group">
+        <label>Genişlik (inç):</label>
+        <input
+          type="number"
+          id="simWidthInput"
+          value="15"
+          onchange="drawScreen()"
+        />
+      </div>
+      <div class="setting-group">
+        <label>Yükseklik (inç):</label>
+        <input
+          type="number"
+          id="simHeightInput"
+          value="15"
+          onchange="drawScreen()"
+        />
+      </div>
+      <div class="switch-container" style="justify-content: center">
+        <span>Göster:</span>
+        <label class="switch">
+          <input type="checkbox" id="simToggle" onchange="drawScreen()" />
+          <span class="slider pink"></span>
+        </label>
+      </div>
+      <div
+        style="
+          font-size: 0.7rem;
+          color: #888;
+          text-align: center;
+          margin-top: 5px;
+        "
+      >
+        Yol üzerindeki kutuyu sürükleyebilirsiniz.
+      </div>
+    </div>
+
+    <h1>VEX Path Planner - Pro Editor v19</h1>
 
     <div class="top-controls">
       <div class="switch-container">
@@ -691,6 +753,13 @@
       const knobHandle = document.getElementById("knobHandle");
       let isKnobDragging = false;
 
+      // Robot Simülasyon Değişkenleri
+      const simWidthInput = document.getElementById("simWidthInput");
+      const simHeightInput = document.getElementById("simHeightInput");
+      const simToggle = document.getElementById("simToggle");
+      let currentSimIndex = 0; // Robotun yol üzerindeki indexi
+      let isSimDragging = false; // Robot kutusu sürükleniyor mu?
+
       const pointNameInput = document.getElementById("pointNameInput");
       const pointSpeedInput = document.getElementById("pointSpeedInput");
       const pointDirInput = document.getElementById("pointDirInput");
@@ -727,26 +796,23 @@
 
       document.addEventListener("mouseup", () => {
         isKnobDragging = false;
+        isSimDragging = false; // Simülasyon sürüklemeyi de bitir
       });
 
       document.addEventListener("mousemove", (e) => {
-        if (!isKnobDragging) return;
-
-        const rect = knobContainer.getBoundingClientRect();
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-        const deltaX = e.clientX - centerX;
-        const deltaY = e.clientY - centerY;
-
-        // Atan2: Sağ(X+) 0 kabul eder, Saat yönü artar.
-        let radians = Math.atan2(deltaY, deltaX);
-        let degrees = radians * (180 / Math.PI);
-
-        degrees = Math.round(degrees);
-
-        handleRotator.style.transform = `rotate(${degrees}deg)`;
-
-        manualAngleChange(degrees);
+        // Knob işlemi
+        if (isKnobDragging) {
+          const rect = knobContainer.getBoundingClientRect();
+          const centerX = rect.left + rect.width / 2;
+          const centerY = rect.top + rect.height / 2;
+          const deltaX = e.clientX - centerX;
+          const deltaY = e.clientY - centerY;
+          let radians = Math.atan2(deltaY, deltaX);
+          let degrees = radians * (180 / Math.PI);
+          degrees = Math.round(degrees);
+          handleRotator.style.transform = `rotate(${degrees}deg)`;
+          manualAngleChange(degrees);
+        }
       });
       // -----------------------
 
@@ -764,13 +830,18 @@
       function savePath() {
         let listToSave = isPointMode || isDrawing ? rawPoints : processedPoints;
         const data = {
-          version: "v18",
+          version: "v19",
           points: listToSave,
           settings: {
             isPointMode: isPointMode,
             curveEnabled: curveToggle.checked,
             pointCount: pointCountInput.value,
             globalSpeed: globalSpeedInput.value,
+            robotSim: {
+              width: simWidthInput.value,
+              height: simHeightInput.value,
+              show: simToggle.checked,
+            },
           },
         };
 
@@ -805,6 +876,12 @@
               updateSettings();
               pointCountInput.value = data.settings.pointCount || 20;
               globalSpeedInput.value = data.settings.globalSpeed || "127";
+
+              if (data.settings.robotSim) {
+                simWidthInput.value = data.settings.robotSim.width;
+                simHeightInput.value = data.settings.robotSim.height;
+                simToggle.checked = data.settings.robotSim.show;
+              }
             }
             selectedPointIndex = -1;
             updateSelectionUI();
@@ -857,14 +934,32 @@
 
       function updateGlobalSpeed() {}
 
-      // --- MOUSE EVENTLERİ ---
+      // --- MOUSE EVENTLERİ (CANVAS) ---
       canvas.addEventListener("mousedown", (e) => {
         const rect = canvas.getBoundingClientRect();
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;
 
-        let targetList = isPointMode || isDrawing ? rawPoints : processedPoints;
+        // ÖNCE SİMÜLASYON ROBOTUNU KONTROL ET
+        if (simToggle.checked && processedPoints.length > 1) {
+          // Görsel yolu al
+          let visualPath = getVisualPathPoints();
+          if (currentSimIndex < visualPath.length) {
+            let p = visualPath[currentSimIndex];
+            // Robotun o anki konumu p.x, p.y.
+            // Basitçe fare yakın mı diye bakalım (örneğin 30px yarıçap)
+            let dist = Math.hypot(p.x - mx, p.y - my);
+            if (dist < 40) {
+              // Tıklama alanı
+              isSimDragging = true;
+              // Olayı burada tüket, nokta seçimine gitme
+              return;
+            }
+          }
+        }
 
+        // NOKTA SEÇİM MANTIĞI
+        let targetList = isPointMode || isDrawing ? rawPoints : processedPoints;
         let clickedIndex = -1;
         for (let i = targetList.length - 1; i >= 0; i--) {
           const dist = Math.hypot(targetList[i].x - mx, targetList[i].y - my);
@@ -910,6 +1005,27 @@
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;
 
+        // SİMÜLASYON SÜRÜKLEME
+        if (isSimDragging && simToggle.checked) {
+          let visualPath = getVisualPathPoints();
+          let minDist = Infinity;
+          let closestIndex = 0;
+
+          // Mouse'a en yakın yol noktasını bul (Basit lineer arama)
+          // Performans için adım atlanabilir ama 200-300 nokta için sorun olmaz
+          for (let i = 0; i < visualPath.length; i++) {
+            let d = Math.hypot(visualPath[i].x - mx, visualPath[i].y - my);
+            if (d < minDist) {
+              minDist = d;
+              closestIndex = i;
+            }
+          }
+          currentSimIndex = closestIndex;
+          drawScreen();
+          return; // Nokta taşımayı engelle
+        }
+
+        // NOKTA TAŞIMA
         if (isDragging && selectedPointIndex !== -1) {
           let targetList =
             isPointMode || isDrawing ? rawPoints : processedPoints;
@@ -1280,6 +1396,34 @@
         return splinePoints;
       }
 
+      // Yardımcı fonksiyon: Çizilen (Eğri veya Düz) yolun tüm noktalarını döndür
+      function getVisualPathPoints() {
+        if (processedPoints.length < 2) return [];
+        if (curveToggle.checked) {
+          return getHermiteSplinePoints(processedPoints, 20);
+        } else {
+          // Düz çizgiler için ara noktaları oluşturmasak da olur,
+          // ama simülasyonun akıcı olması için lineer interpolasyon yapmak iyi olur.
+          // Şimdilik sadece ana noktaları döndürüyoruz, robot "ışınlanır" gibi gidebilir
+          // bu yüzden basit bir interpolasyon ekleyelim.
+          let pts = [];
+          // Her nokta arasına 10 tane ekle
+          for (let i = 0; i < processedPoints.length - 1; i++) {
+            let p1 = processedPoints[i];
+            let p2 = processedPoints[i + 1];
+            for (let t = 0; t < 1; t += 0.05) {
+              // 20 adım
+              pts.push({
+                x: p1.x + (p2.x - p1.x) * t,
+                y: p1.y + (p2.y - p1.y) * t,
+              });
+            }
+          }
+          pts.push(processedPoints[processedPoints.length - 1]);
+          return pts;
+        }
+      }
+
       function drawScreen() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -1298,6 +1442,7 @@
           let visualPoints = processedPoints;
           let useCurveColor = false;
 
+          // Eğri veya Düz Yol Hesabı
           if (curveToggle.checked && processedPoints.length > 1) {
             visualPoints = getHermiteSplinePoints(processedPoints, 20);
             useCurveColor = true;
@@ -1307,6 +1452,7 @@
             if (processedPoints.length > 1)
               drawRawPath(visualPoints, useCurveColor);
 
+            // Noktaları Çiz
             for (let i = 0; i < processedPoints.length; i++) {
               let visAngle = 0;
               if (processedPoints[i].customHeading !== null) {
@@ -1332,7 +1478,64 @@
               );
             }
           }
+
+          // ROBOT SİMÜLASYONUNU ÇİZ
+          if (simToggle.checked && processedPoints.length > 1) {
+            drawRobotSimulation(visualPoints, useCurveColor);
+          }
         }
+      }
+
+      function drawRobotSimulation(visualPoints, isCurved) {
+        // Eğer görsel nokta dizimiz varsa
+        // visualPoints, drawRawPath'e giden noktalarla aynı olmalı.
+        // Ancak drawScreen içinde local tanımlı.
+        // En garantisi getVisualPathPoints kullanmak.
+        let simPath = getVisualPathPoints();
+        if (simPath.length < 2) return;
+
+        // Index bounds check
+        if (currentSimIndex >= simPath.length)
+          currentSimIndex = simPath.length - 1;
+        if (currentSimIndex < 0) currentSimIndex = 0;
+
+        let p = simPath[currentSimIndex];
+
+        // Robot Açısını Hesapla
+        // Bir sonraki noktaya bakarak
+        let angle = 0;
+        if (currentSimIndex < simPath.length - 1) {
+          angle = calculateRawHeading(p, simPath[currentSimIndex + 1]);
+        } else if (currentSimIndex > 0) {
+          // Son noktadaysak bir öncekine bak
+          angle = calculateRawHeading(simPath[currentSimIndex - 1], p);
+        }
+
+        // İnç -> Piksel
+        let w = parseFloat(simWidthInput.value) * PIXELS_PER_INCH;
+        let h = parseFloat(simHeightInput.value) * PIXELS_PER_INCH;
+
+        // Çizim
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate((angle * Math.PI) / 180);
+
+        ctx.fillStyle = "rgba(214, 51, 132, 0.3)"; // Saydam pembe
+        ctx.strokeStyle = "#d63384";
+        ctx.lineWidth = 2;
+
+        // Merkezden çiz
+        ctx.fillRect(-w / 2, -h / 2, w, h);
+        ctx.strokeRect(-w / 2, -h / 2, w, h);
+
+        // Ön tarafı belirtmek için küçük bir çizgi
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(w / 2, 0);
+        ctx.strokeStyle = "white";
+        ctx.stroke();
+
+        ctx.restore();
       }
 
       function drawFancyPoint(p, isSelected, headingDeg, isStart) {
