@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VEX Path Planner - Pro Editor v16</title>
+    <title>VEX Path Planner - Pro Editor v17 (Fixed Rotation)</title>
     <style>
       /* GENEL SAYFA DÜZENİ */
       body {
@@ -250,11 +250,6 @@
         font-size: 0.8rem;
         background-color: #555;
       }
-      input[type="range"] {
-        width: 100%;
-        accent-color: #ff9f43;
-        margin: 5px 0;
-      }
 
       .full-width-input {
         width: 95%;
@@ -272,6 +267,89 @@
         padding: 4px;
         border-radius: 4px;
       }
+
+      /* KNOB CSS (GÜNCELLENMİŞ - DÜZELTİLMİŞ) */
+      .knob-wrapper {
+        display: flex;
+        justify-content: center;
+        margin: 10px 0;
+      }
+      .knob-container {
+        position: relative;
+        width: 100px;
+        height: 100px;
+        background-color: #222;
+        border-radius: 50%;
+        box-shadow: inset 0 0 10px #000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border: 1px solid #444;
+      }
+      .knob-track {
+        position: absolute;
+        width: 85%;
+        height: 85%;
+        border-radius: 50%;
+        border: 4px solid #444;
+        box-sizing: border-box;
+      }
+      .handle-rotator {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+        transform-origin: center center;
+        pointer-events: none;
+        /* Başlangıç pozisyonu 0 derece */
+        transform: rotate(0deg);
+      }
+      .knob-handle {
+        position: absolute;
+        width: 18px;
+        height: 18px;
+        background-color: #ff9f43;
+        border-radius: 50%;
+
+        /* DÜZELTME: Başlangıç pozisyonunu SAĞ (3 Yönü) yapıyoruz */
+        right: 4px; /* Sağdan boşluk */
+        top: 50%; /* Dikey ortalama */
+        margin-top: -9px; /* Yüksekliğin yarısı kadar yukarı çek */
+
+        cursor: grab;
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+        pointer-events: auto;
+        transition: background-color 0.2s;
+        border: 2px solid #fff;
+      }
+
+      /* OK İŞARETİ (Triangle) - SAĞA BAKAN */
+      .knob-handle::after {
+        content: "";
+        position: absolute;
+        /* Okun konumu: Dairenin sağ ucunda */
+        left: 100%;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 0;
+        height: 0;
+
+        /* Sağa bakan üçgen */
+        border-top: 6px solid transparent;
+        border-bottom: 6px solid transparent;
+        border-left: 8px solid #ff9f43; /* Rengi tutamaçla aynı */
+      }
+
+      .knob-handle:active {
+        cursor: grabbing;
+        background-color: #e67e22;
+      }
+      .knob-handle:active::after {
+        border-left-color: #e67e22;
+      }
+
+      /* --------------------------- */
 
       .output-panel {
         width: 310px;
@@ -364,7 +442,7 @@
       />
     </div>
 
-    <h1>VEX Path Planner - Pro Editor v16</h1>
+    <h1>VEX Path Planner - Pro Editor v17</h1>
 
     <div class="top-controls">
       <div class="switch-container">
@@ -516,15 +594,15 @@
                 Oto
               </button>
             </div>
-            <input
-              type="range"
-              id="angleSlider"
-              min="-180"
-              max="180"
-              value="0"
-              oninput="manualAngleChange(this.value)"
-            />
 
+            <div class="knob-wrapper">
+              <div class="knob-container" id="knobContainer">
+                <div class="knob-track"></div>
+                <div class="handle-rotator" id="handleRotator">
+                  <div class="knob-handle" id="knobHandle"></div>
+                </div>
+              </div>
+            </div>
             <div class="angle-buttons">
               <button onclick="rotateAngle(-90)">↺ -90°</button>
               <button onclick="rotateAngle(90)">↻ +90°</button>
@@ -598,7 +676,12 @@
       const coordXInput = document.getElementById("coordXInput");
       const coordYInput = document.getElementById("coordYInput");
       const angleInput = document.getElementById("angleInput");
-      const angleSlider = document.getElementById("angleSlider");
+
+      // Knob Değişkenleri
+      const knobContainer = document.getElementById("knobContainer");
+      const handleRotator = document.getElementById("handleRotator");
+      const knobHandle = document.getElementById("knobHandle");
+      let isKnobDragging = false;
 
       const pointNameInput = document.getElementById("pointNameInput");
       const pointSpeedInput = document.getElementById("pointSpeedInput");
@@ -627,6 +710,39 @@
         drawScreen();
       };
 
+      // --- KNOB EVENTLERİ ---
+      knobHandle.addEventListener("mousedown", (e) => {
+        isKnobDragging = true;
+        e.preventDefault();
+        e.stopPropagation();
+      });
+
+      document.addEventListener("mouseup", () => {
+        isKnobDragging = false;
+      });
+
+      document.addEventListener("mousemove", (e) => {
+        if (!isKnobDragging) return;
+
+        const rect = knobContainer.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        const deltaX = e.clientX - centerX;
+        const deltaY = e.clientY - centerY;
+
+        // Atan2: Sağ(X+) 0 kabul eder, Saat yönü artar.
+        let radians = Math.atan2(deltaY, deltaX);
+        let degrees = radians * (180 / Math.PI);
+
+        degrees = Math.round(degrees);
+
+        // UI Güncelleme: +90 KALDIRILDI
+        handleRotator.style.transform = `rotate(${degrees}deg)`;
+
+        manualAngleChange(degrees);
+      });
+      // -----------------------
+
       // --- KLAVYE VE DOSYA ---
       document.addEventListener("keydown", (e) => {
         if (e.key === "Delete") {
@@ -641,7 +757,7 @@
       function savePath() {
         let listToSave = isPointMode || isDrawing ? rawPoints : processedPoints;
         const data = {
-          version: "v16",
+          version: "v17",
           points: listToSave,
           settings: {
             isPointMode: isPointMode,
@@ -885,14 +1001,6 @@
             let distFromCenter = p.x - cx;
             p.x = cx - distFromCenter;
             if (p.customHeading !== null) {
-              // Açı Aynalama Y Ekseninde (Sağ<->Sol)
-              // Sağ(0) -> Sol(180).
-              // Aşağı(90) -> Aşağı(90).
-              // Yukarı(-90) -> Yukarı(-90).
-              // 180 - Angle formülü:
-              // 0 -> 180
-              // 90 -> 90
-              // -90 -> 270 (-90)
               let a = p.customHeading;
               p.customHeading = 180 - a;
               while (p.customHeading > 180) p.customHeading -= 360;
@@ -902,12 +1010,6 @@
             let distFromCenter = p.y - cy;
             p.y = cy - distFromCenter;
             if (p.customHeading !== null) {
-              // Açı Aynalama X Ekseninde (Yukarı<->Aşağı)
-              // Sağ(0) -> Sağ(0).
-              // Aşağı(90) -> Yukarı(-90).
-              // -Angle formülü:
-              // 0 -> 0
-              // 90 -> -90
               p.customHeading = -p.customHeading;
             }
           }
@@ -953,13 +1055,16 @@
             pointDirInput.value = p.dir || "fwd";
           }
 
+          // KNOB GÜNCELLEME
           if (p.customHeading !== null) {
             angleInput.value = p.customHeading;
-            angleSlider.value = p.customHeading;
+            // +90 DÜZELTMESİ KALDIRILDI
+            handleRotator.style.transform = `rotate(${p.customHeading}deg)`;
           } else {
             angleInput.value = "";
             angleInput.placeholder = "Oto";
-            angleSlider.value = 0;
+            // Açı yoksa 0 (sağ)
+            handleRotator.style.transform = `rotate(0deg)`;
           }
         } else {
           noSelectionMsg.style.display = "block";
@@ -1012,9 +1117,15 @@
       function manualAngleChange(val) {
         if (selectedPointIndex !== -1) {
           let list = isPointMode ? rawPoints : processedPoints;
-          list[selectedPointIndex].customHeading = parseFloat(val);
+          let angleVal = parseFloat(val);
+          list[selectedPointIndex].customHeading = angleVal;
           angleInput.value = val;
-          angleSlider.value = val;
+
+          if (!isNaN(angleVal)) {
+            // +90 DÜZELTMESİ KALDIRILDI
+            handleRotator.style.transform = `rotate(${angleVal}deg)`;
+          }
+
           drawScreen();
           generateFormattedOutput(list);
         }
@@ -1133,13 +1244,9 @@
           magnitude = dist * 0.5;
 
           if (points[i].customHeading !== null) {
-            // AÇI REFERANSI DÜZELTİLDİ: SAĞ = 0 DERECE.
-            // Canvas da Sağ=0, Aşağı=90.
-            // Artık dönüşüme gerek yok.
             let rad = (points[i].customHeading * Math.PI) / 180;
-
             tX = Math.cos(rad) * magnitude;
-            tY = Math.sin(rad) * magnitude; // Y aşağı pozitif, sin doğru.
+            tY = Math.sin(rad) * magnitude;
           } else {
             tX = (next.x - prev.x) * 0.5;
             tY = (next.y - prev.y) * 0.5;
@@ -1249,7 +1356,6 @@
           ctx.stroke();
         }
 
-        // AÇI DÜZELTME: SAĞ=0.
         let rad = (headingDeg * Math.PI) / 180;
 
         ctx.beginPath();
@@ -1321,28 +1427,19 @@
         ctx.stroke();
       }
 
-      // --- AÇI HESABI ---
       function calculateRawHeading(p1, p2) {
-        let dx_px = p2.x - p1.x; // Sağ (+)
-        let dy_px = p2.y - p1.y; // Aşağı (+)
-
-        // Hedef: Sağ=0, Aşağı=90.
-        // atan2(y, x) -> Sağ=0, Aşağı=90 (Canvas standart).
-        // Direkt sonuç.
-
+        let dx_px = p2.x - p1.x;
+        let dy_px = p2.y - p1.y;
         let rad = Math.atan2(dy_px, dx_px);
         let deg = (rad * 180) / Math.PI;
         return deg;
       }
 
-      // --- KOORDİNAT HESABI (X=Dikey, Y=Yatay) ---
       function getCoordinatesInches(point) {
-        let pixelX = point.x - CANVAS_SIZE / 2; // Yatay
-        let pixelY = point.y - CANVAS_SIZE / 2; // Dikey
-
-        let inchesY = pixelX / PIXELS_PER_INCH; // Yatay -> Y
-        let inchesX = pixelY / PIXELS_PER_INCH; // Dikey -> X (Aşağı +)
-
+        let pixelX = point.x - CANVAS_SIZE / 2;
+        let pixelY = point.y - CANVAS_SIZE / 2;
+        let inchesY = pixelX / PIXELS_PER_INCH;
+        let inchesX = pixelY / PIXELS_PER_INCH;
         return { x: inchesX, y: inchesY };
       }
 
@@ -1380,7 +1477,6 @@
           let aF = Math.round(angleFinal * 100) / 100;
 
           if (i === 0) {
-            // X=Dikey (Aşağı+), Y=Yatay
             outputText += `chassis.odom_xyt_set(${xF}_in, ${yF}_in, ${aF}_deg);\n\n`;
             outputText += "chassis.pid_odom_set({\n";
           } else {
