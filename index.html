@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VEX Path Planner - Pro Editor v13</title>
+    <title>VEX Path Planner - Pro Editor v16</title>
     <style>
       /* GENEL SAYFA DÜZENİ */
       body {
@@ -23,6 +23,59 @@
         color: #fff;
         margin: 5px 0 10px 0;
         font-size: 1.4rem;
+      }
+
+      /* DOSYA MENÜSÜ */
+      .file-menu-container {
+        position: absolute;
+        top: 15px;
+        left: 15px;
+        z-index: 100;
+      }
+
+      .dropbtn {
+        background-color: #007bff;
+        color: white;
+        padding: 10px 20px;
+        font-size: 14px;
+        border: none;
+        cursor: pointer;
+        border-radius: 5px;
+        font-weight: bold;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+      }
+
+      .dropdown {
+        position: relative;
+        display: inline-block;
+      }
+      .dropdown-content {
+        display: none;
+        position: absolute;
+        background-color: #2d2d2d;
+        min-width: 160px;
+        box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+        z-index: 1;
+        border-radius: 5px;
+        border: 1px solid #444;
+      }
+      .dropdown-content a {
+        color: #ccc;
+        padding: 12px 16px;
+        text-decoration: none;
+        display: block;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .dropdown-content a:hover {
+        background-color: #444;
+        color: #fff;
+      }
+      .dropdown:hover .dropdown-content {
+        display: block;
+      }
+      .dropdown:hover .dropbtn {
+        background-color: #0056b3;
       }
 
       /* ÜST KONTROL BAR */
@@ -180,10 +233,6 @@
         text-align: center;
         font-family: monospace;
       }
-      .coord-inputs span {
-        font-size: 0.8rem;
-        color: #888;
-      }
 
       .angle-control {
         display: flex;
@@ -215,7 +264,6 @@
         padding: 4px;
         margin-top: 2px;
       }
-
       select {
         width: 100%;
         background: #222;
@@ -297,7 +345,26 @@
     </style>
   </head>
   <body>
-    <h1>VEX Path Planner - Pro Editor v13</h1>
+    <div class="file-menu-container">
+      <div class="dropdown">
+        <button class="dropbtn">Dosya</button>
+        <div class="dropdown-content">
+          <a onclick="savePath()">💾 Projeyi Kaydet</a>
+          <a onclick="document.getElementById('fileInput').click()"
+            >📂 Proje Yükle</a
+          >
+        </div>
+      </div>
+      <input
+        type="file"
+        id="fileInput"
+        style="display: none"
+        accept=".json"
+        onchange="loadPath(this)"
+      />
+    </div>
+
+    <h1>VEX Path Planner - Pro Editor v16</h1>
 
     <div class="top-controls">
       <div class="switch-container">
@@ -560,6 +627,75 @@
         drawScreen();
       };
 
+      // --- KLAVYE VE DOSYA ---
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Delete") {
+          if (selectedPointIndex !== -1) deleteSelectedPoint();
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+          e.preventDefault();
+          undoLastPoint();
+        }
+      });
+
+      function savePath() {
+        let listToSave = isPointMode || isDrawing ? rawPoints : processedPoints;
+        const data = {
+          version: "v16",
+          points: listToSave,
+          settings: {
+            isPointMode: isPointMode,
+            curveEnabled: curveToggle.checked,
+            pointCount: pointCountInput.value,
+            globalSpeed: globalSpeedInput.value,
+          },
+        };
+
+        const jsonStr = JSON.stringify(data, null, 2);
+        const blob = new Blob([jsonStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "vex_path.json";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+
+      function loadPath(input) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          try {
+            const data = JSON.parse(e.target.result);
+            if (data.points) {
+              rawPoints = data.points;
+              processedPoints = rawPoints.slice();
+            }
+            if (data.settings) {
+              document.getElementById("modeToggle").checked =
+                data.settings.isPointMode;
+              toggleMode();
+              curveToggle.checked = data.settings.curveEnabled;
+              updateSettings();
+              pointCountInput.value = data.settings.pointCount || 20;
+              globalSpeedInput.value = data.settings.globalSpeed || "127";
+            }
+            selectedPointIndex = -1;
+            updateSelectionUI();
+            processPath(true);
+            alert("Proje başarıyla yüklendi!");
+          } catch (err) {
+            alert("Dosya okuma hatası!");
+            console.error(err);
+          }
+        };
+        reader.readAsText(file);
+        input.value = "";
+      }
+
       // --- MOD YÖNETİMİ ---
       function toggleMode() {
         const toggle = document.getElementById("modeToggle");
@@ -578,7 +714,11 @@
           document.getElementById("undoBtn").style.display = "none";
           pointCountInput.disabled = false;
         }
-        clearCanvas();
+        clearCanvasKeepPoints();
+      }
+
+      function clearCanvasKeepPoints() {
+        drawScreen();
       }
 
       function updateSettings() {
@@ -714,11 +854,12 @@
       }
 
       function undoLastPoint() {
-        if (isPointMode && rawPoints.length > 0) {
-          rawPoints.pop();
+        let targetList = isPointMode ? rawPoints : processedPoints;
+        if (targetList.length > 1) {
+          targetList.pop();
           selectedPointIndex = -1;
           updateSelectionUI();
-          processPath();
+          processPath(true);
         }
       }
 
@@ -741,29 +882,32 @@
 
         targetList.forEach((p) => {
           if (axis === "X") {
-            // X (Dikey) Eksen Aynalama -> YATAY Flip
             let distFromCenter = p.x - cx;
             p.x = cx - distFromCenter;
             if (p.customHeading !== null) {
-              // Açı aynalama: Y ekseni etrafında (Sağ<->Sol)
+              // Açı Aynalama Y Ekseninde (Sağ<->Sol)
               // Sağ(0) -> Sol(180).
               // Aşağı(90) -> Aşağı(90).
               // Yukarı(-90) -> Yukarı(-90).
-              // Formül: 180 - Angle.
+              // 180 - Angle formülü:
+              // 0 -> 180
+              // 90 -> 90
+              // -90 -> 270 (-90)
               let a = p.customHeading;
               p.customHeading = 180 - a;
               while (p.customHeading > 180) p.customHeading -= 360;
               while (p.customHeading < -180) p.customHeading += 360;
             }
           } else if (axis === "Y") {
-            // Y (Yatay) Eksen Aynalama -> DİKEY Flip
             let distFromCenter = p.y - cy;
             p.y = cy - distFromCenter;
             if (p.customHeading !== null) {
-              // Açı aynalama: X ekseni etrafında (Yukarı<->Aşağı)
+              // Açı Aynalama X Ekseninde (Yukarı<->Aşağı)
               // Sağ(0) -> Sağ(0).
               // Aşağı(90) -> Yukarı(-90).
-              // Formül: -Angle.
+              // -Angle formülü:
+              // 0 -> 0
+              // 90 -> -90
               p.customHeading = -p.customHeading;
             }
           }
@@ -856,7 +1000,6 @@
         let newYInches = parseFloat(coordYInput.value);
         if (isNaN(newXInches) || isNaN(newYInches)) return;
 
-        // İnç -> Piksel
         let pX = newYInches * PIXELS_PER_INCH + CANVAS_SIZE / 2;
         let pY = newXInches * PIXELS_PER_INCH + CANVAS_SIZE / 2;
 
@@ -990,15 +1133,13 @@
           magnitude = dist * 0.5;
 
           if (points[i].customHeading !== null) {
-            // AÇI REFERANSI: Sağ (0).
-            // Canvas Açı Referansı: Sağ (0), Aşağı (90)
-            // Bu tam eşleşiyor!
-            // 0 -> cos(0)=1, sin(0)=0 (Sağ).
-            // 90 -> cos(90)=0, sin(90)=1 (Aşağı).
-
+            // AÇI REFERANSI DÜZELTİLDİ: SAĞ = 0 DERECE.
+            // Canvas da Sağ=0, Aşağı=90.
+            // Artık dönüşüme gerek yok.
             let rad = (points[i].customHeading * Math.PI) / 180;
+
             tX = Math.cos(rad) * magnitude;
-            tY = Math.sin(rad) * magnitude;
+            tY = Math.sin(rad) * magnitude; // Y aşağı pozitif, sin doğru.
           } else {
             tX = (next.x - prev.x) * 0.5;
             tY = (next.y - prev.y) * 0.5;
@@ -1108,8 +1249,7 @@
           ctx.stroke();
         }
 
-        // GÖRSELLEŞTİRME: Sağ=0, Aşağı=90.
-        // Canvas ile birebir uyumlu.
+        // AÇI DÜZELTME: SAĞ=0.
         let rad = (headingDeg * Math.PI) / 180;
 
         ctx.beginPath();
@@ -1183,30 +1323,25 @@
 
       // --- AÇI HESABI ---
       function calculateRawHeading(p1, p2) {
-        let dx_px = p2.x - p1.x; // Yatay Fark (Sağ+)
-        let dy_px = p2.y - p1.y; // Dikey Fark (Aşağı+)
+        let dx_px = p2.x - p1.x; // Sağ (+)
+        let dy_px = p2.y - p1.y; // Aşağı (+)
 
-        // Hedefimiz: Sağ=0, Aşağı=90.
-        // atan2(y, x) -> Sağ=0, Aşağı=90.
-        // CanvasY=Aşağı, CanvasX=Sağ.
-        // Bu yüzden atan2(dy_px, dx_px) tam olarak istediğimizi verir.
+        // Hedef: Sağ=0, Aşağı=90.
+        // atan2(y, x) -> Sağ=0, Aşağı=90 (Canvas standart).
+        // Direkt sonuç.
 
         let rad = Math.atan2(dy_px, dx_px);
         let deg = (rad * 180) / Math.PI;
         return deg;
       }
 
-      // --- KOORDİNAT HESABI (GÜNCELLENDİ: X=Dikey, Y=Yatay) ---
+      // --- KOORDİNAT HESABI (X=Dikey, Y=Yatay) ---
       function getCoordinatesInches(point) {
-        let pixelX = point.x - CANVAS_SIZE / 2; // Yatay Piksel
-        let pixelY = point.y - CANVAS_SIZE / 2; // Dikey Piksel
-
-        // İSTENEN:
-        // Dikey = X (Aşağı doğru artar -> pixelY)
-        // Yatay = Y (Sağa doğru artar -> pixelX)
+        let pixelX = point.x - CANVAS_SIZE / 2; // Yatay
+        let pixelY = point.y - CANVAS_SIZE / 2; // Dikey
 
         let inchesY = pixelX / PIXELS_PER_INCH; // Yatay -> Y
-        let inchesX = pixelY / PIXELS_PER_INCH; // Dikey -> X
+        let inchesX = pixelY / PIXELS_PER_INCH; // Dikey -> X (Aşağı +)
 
         return { x: inchesX, y: inchesY };
       }
@@ -1245,7 +1380,7 @@
           let aF = Math.round(angleFinal * 100) / 100;
 
           if (i === 0) {
-            // X=Dikey, Y=Yatay
+            // X=Dikey (Aşağı+), Y=Yatay
             outputText += `chassis.odom_xyt_set(${xF}_in, ${yF}_in, ${aF}_deg);\n\n`;
             outputText += "chassis.pid_odom_set({\n";
           } else {
