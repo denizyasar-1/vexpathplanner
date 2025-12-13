@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VEX Path Planner - Pro Editor v17 (Fixed Rotation)</title>
+    <title>VEX Path Planner - Pro Editor v18 (Perfect Center)</title>
     <style>
       /* GENEL SAYFA DÜZENİ */
       body {
@@ -268,7 +268,7 @@
         border-radius: 4px;
       }
 
-      /* KNOB CSS (GÜNCELLENMİŞ - DÜZELTİLMİŞ) */
+      /* KNOB CSS (TAM MERKEZLİ VERSİYON) */
       .knob-wrapper {
         display: flex;
         justify-content: center;
@@ -302,43 +302,51 @@
         left: 0;
         transform-origin: center center;
         pointer-events: none;
-        /* Başlangıç pozisyonu 0 derece */
         transform: rotate(0deg);
       }
+
       .knob-handle {
         position: absolute;
         width: 18px;
         height: 18px;
         background-color: #ff9f43;
         border-radius: 50%;
+        border: 2px solid #fff;
 
-        /* DÜZELTME: Başlangıç pozisyonunu SAĞ (3 Yönü) yapıyoruz */
-        right: 4px; /* Sağdan boşluk */
-        top: 50%; /* Dikey ortalama */
-        margin-top: -9px; /* Yüksekliğin yarısı kadar yukarı çek */
+        /* DÜZELTME: Pikselle "right" vermek yerine hesaplayarak yerleştirme */
+        left: 50%;
+        top: 50%;
+
+        /* HESAPLAMA MANTIĞI:
+           1. Önce (-50%, -50%) ile topu tam merkeze (0 noktasına) alıyoruz.
+           2. Sonra Yarıçap kadar (40.5px) sağa (X+) itiyoruz.
+           
+           Yarıçap Hesabı:
+           - Track Width: 85px (box-sizing: border-box)
+           - Border: 4px.
+           - Dış Yarıçap: 42.5px.
+           - Track çizgisinin merkezi (border'ın ortası): 42.5 - 2 = 40.5px.
+        */
+        transform: translate(calc(-50% + 40.5px), -50%);
 
         cursor: grab;
         box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
         pointer-events: auto;
         transition: background-color 0.2s;
-        border: 2px solid #fff;
       }
 
       /* OK İŞARETİ (Triangle) - SAĞA BAKAN */
       .knob-handle::after {
         content: "";
         position: absolute;
-        /* Okun konumu: Dairenin sağ ucunda */
         left: 100%;
         top: 50%;
         transform: translateY(-50%);
         width: 0;
         height: 0;
-
-        /* Sağa bakan üçgen */
         border-top: 6px solid transparent;
         border-bottom: 6px solid transparent;
-        border-left: 8px solid #ff9f43; /* Rengi tutamaçla aynı */
+        border-left: 8px solid #ff9f43;
       }
 
       .knob-handle:active {
@@ -442,7 +450,7 @@
       />
     </div>
 
-    <h1>VEX Path Planner - Pro Editor v17</h1>
+    <h1>VEX Path Planner - Pro Editor v18</h1>
 
     <div class="top-controls">
       <div class="switch-container">
@@ -736,7 +744,6 @@
 
         degrees = Math.round(degrees);
 
-        // UI Güncelleme: +90 KALDIRILDI
         handleRotator.style.transform = `rotate(${degrees}deg)`;
 
         manualAngleChange(degrees);
@@ -757,7 +764,7 @@
       function savePath() {
         let listToSave = isPointMode || isDrawing ? rawPoints : processedPoints;
         const data = {
-          version: "v17",
+          version: "v18",
           points: listToSave,
           settings: {
             isPointMode: isPointMode,
@@ -1058,12 +1065,10 @@
           // KNOB GÜNCELLEME
           if (p.customHeading !== null) {
             angleInput.value = p.customHeading;
-            // +90 DÜZELTMESİ KALDIRILDI
             handleRotator.style.transform = `rotate(${p.customHeading}deg)`;
           } else {
             angleInput.value = "";
             angleInput.placeholder = "Oto";
-            // Açı yoksa 0 (sağ)
             handleRotator.style.transform = `rotate(0deg)`;
           }
         } else {
@@ -1122,7 +1127,6 @@
           angleInput.value = val;
 
           if (!isNaN(angleVal)) {
-            // +90 DÜZELTMESİ KALDIRILDI
             handleRotator.style.transform = `rotate(${angleVal}deg)`;
           }
 
