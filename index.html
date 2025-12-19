@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VEX Path Planner - Pro Editor v29 (Deletable Start)</title>
+    <title>VEX Path Planner - Pro Editor v30</title>
     <style>
       /* GENEL SAYFA DÜZENİ */
       body {
@@ -512,7 +512,7 @@
       />
     </div>
 
-    <h1>VEX Path Planner - Pro Editor v29</h1>
+    <h1>VEX Path Planner - Pro Editor v30</h1>
 
     <div class="top-controls">
       <div class="switch-container">
@@ -827,7 +827,7 @@
         drawScreen();
       };
 
-      // --- ANIMASYON MANTIĞI (ADAPTIVE SAMPLING İLE) ---
+      // --- ANIMASYON MANTIĞI ---
       function toggleAnimation() {
         if (!simToggle.checked) {
           alert("Lütfen önce Robot Görünümünü (Göster) açın.");
@@ -861,8 +861,6 @@
           if (path[Math.floor(currentSimIndex)].speed)
             currentSpeed = parseInt(path[Math.floor(currentSimIndex)].speed);
 
-          // Hız faktörü: Noktalar arası mesafe artık sabit (~2px).
-          // Bu yüzden index artışı doğrudan fiziksel hıza dönüşür.
           let speedFactor = currentSpeed / 200;
 
           currentSimIndex += speedFactor;
@@ -920,7 +918,7 @@
       function savePath() {
         let listToSave = isPointMode || isDrawing ? rawPoints : processedPoints;
         const data = {
-          version: "v29",
+          version: "v30",
           points: listToSave,
           settings: {
             isPointMode: isPointMode,
@@ -1156,7 +1154,6 @@
         });
       }
 
-      // --- GÜNCELLENMİŞ SİLME FONKSİYONU ---
       function deleteSelectedPoint() {
         if (selectedPointIndex !== -1) {
           // BAŞLANGIÇ NOKTASINI SİLME KONTROLÜ KALDIRILDI
@@ -1172,7 +1169,7 @@
             return;
           }
 
-          // Seçili index listeden taştıysa (örn. son elemanı sildiysek)
+          // Seçili index listeden taştıysa
           if (selectedPointIndex >= list.length) {
             selectedPointIndex = list.length - 1;
           }
@@ -1233,7 +1230,7 @@
         if (selectedPointIndex !== -1) updateSelectionUI();
       }
 
-      // --- UI GÜNCELLEME (GÜNCELLENDİ) ---
+      // --- UI GÜNCELLEME (AKILLI SLIDER) ---
       function updateSelectionUI() {
         if (selectedPointIndex !== -1) {
           noSelectionMsg.style.display = "none";
@@ -1822,22 +1819,27 @@
           let aF = Math.round(angleFinal * 100) / 100;
 
           if (i === 0) {
-            outputText += `chassis.odom_xyt_set(${xF}_in, ${yF}_in, ${aF}_deg);\n\n`;
-            outputText += "chassis.pid_odom_set({\n";
+            outputText += `chassis.odom_xyt_set(${xF}_in, ${yF}_in, ${aF}_deg);`;
+            if (currentP.name && currentP.name.length > 0) {
+              outputText += ` // ${currentP.name}`;
+            }
+            outputText += "\n\nchassis.pid_odom_set({\n";
           } else {
             let ptSpeed = currentP.speed || globalSpeedInput.value;
             let ptDir = currentP.dir || "fwd";
 
             let lineData = `{${xF}_in, ${yF}_in, ${aF}_deg, ${ptDir}, ${ptSpeed}}`;
 
-            if (currentP.name && currentP.name.length > 0) {
-              lineData += `, // ${currentP.name}`;
+            // DÜZELTME: Virgül, veri bloğunun hemen yanına ekleniyor (yorumdan önce)
+            if (i > 1) outputText += "\n";
+            outputText += "      " + lineData;
+
+            if (i < points.length - 1) {
+              outputText += ",";
             }
 
-            if (i === 1) {
-              outputText += "      " + lineData;
-            } else {
-              outputText += ",\n      " + lineData;
+            if (currentP.name && currentP.name.length > 0) {
+              outputText += ` // ${currentP.name}`;
             }
           }
         }
