@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VEX Path Planner - Pro Editor v27 (Smart Slider)</title>
+    <title>VEX Path Planner - Pro Editor v29 (Deletable Start)</title>
     <style>
       /* GENEL SAYFA DÜZENİ */
       body {
@@ -512,7 +512,7 @@
       />
     </div>
 
-    <h1>VEX Path Planner - Pro Editor v27</h1>
+    <h1>VEX Path Planner - Pro Editor v29</h1>
 
     <div class="top-controls">
       <div class="switch-container">
@@ -827,7 +827,7 @@
         drawScreen();
       };
 
-      // --- ANIMASYON MANTIĞI ---
+      // --- ANIMASYON MANTIĞI (ADAPTIVE SAMPLING İLE) ---
       function toggleAnimation() {
         if (!simToggle.checked) {
           alert("Lütfen önce Robot Görünümünü (Göster) açın.");
@@ -861,10 +861,11 @@
           if (path[Math.floor(currentSimIndex)].speed)
             currentSpeed = parseInt(path[Math.floor(currentSimIndex)].speed);
 
-          let scaledSpeed = currentSpeed * (25 / 127);
-          let step = Math.max(0.05, scaledSpeed / 40);
+          // Hız faktörü: Noktalar arası mesafe artık sabit (~2px).
+          // Bu yüzden index artışı doğrudan fiziksel hıza dönüşür.
+          let speedFactor = currentSpeed / 200;
 
-          currentSimIndex += step;
+          currentSimIndex += speedFactor;
           if (currentSimIndex >= path.length - 1) {
             currentSimIndex = path.length - 1;
             isPlaying = false;
@@ -919,7 +920,7 @@
       function savePath() {
         let listToSave = isPointMode || isDrawing ? rawPoints : processedPoints;
         const data = {
-          version: "v27",
+          version: "v29",
           points: listToSave,
           settings: {
             isPointMode: isPointMode,
@@ -1155,19 +1156,27 @@
         });
       }
 
+      // --- GÜNCELLENMİŞ SİLME FONKSİYONU ---
       function deleteSelectedPoint() {
         if (selectedPointIndex !== -1) {
-          if (selectedPointIndex === 0) {
-            alert("Başlangıç noktası silinemez!");
+          // BAŞLANGIÇ NOKTASINI SİLME KONTROLÜ KALDIRILDI
+          // ARTIK HER NOKTA SİLİNEBİLİR
+
+          let list = isPointMode ? rawPoints : processedPoints;
+
+          list.splice(selectedPointIndex, 1);
+
+          // Eğer hiç nokta kalmadıysa sıfırla
+          if (list.length === 0) {
+            clearCanvas();
             return;
           }
 
-          if (isPointMode) {
-            rawPoints.splice(selectedPointIndex, 1);
-          } else {
-            processedPoints.splice(selectedPointIndex, 1);
+          // Seçili index listeden taştıysa (örn. son elemanı sildiysek)
+          if (selectedPointIndex >= list.length) {
+            selectedPointIndex = list.length - 1;
           }
-          selectedPointIndex = -1;
+
           updateSelectionUI();
           processPath(true);
         }
@@ -1224,7 +1233,7 @@
         if (selectedPointIndex !== -1) updateSelectionUI();
       }
 
-      // --- UI GÜNCELLEME (AKILLI SLIDER) ---
+      // --- UI GÜNCELLEME (GÜNCELLENDİ) ---
       function updateSelectionUI() {
         if (selectedPointIndex !== -1) {
           noSelectionMsg.style.display = "none";
@@ -1246,8 +1255,9 @@
           if (selectedPointIndex === 0) {
             pointNameInput.value = "Başlangıç Noktası";
             pointNameInput.disabled = true;
-            deleteBtn.disabled = true;
-            deleteBtn.style.opacity = "0.5";
+            // ARTIK SİLME BUTONU AKTİF
+            deleteBtn.disabled = false;
+            deleteBtn.style.opacity = "1";
             movementSettings.style.display = "none";
           } else {
             pointNameInput.value = p.name || "";
@@ -1259,18 +1269,14 @@
             pointDirInput.value = p.dir || "fwd";
           }
 
-          // --- KNOB MANTIĞI GÜNCELLENDİ ---
+          // --- KNOB MANTIĞI ---
           let displayAngle = 0;
           if (p.customHeading !== null) {
-            // Eğer özel açı varsa onu göster
             displayAngle = p.customHeading;
             angleInput.value = displayAngle;
           } else {
-            // Eğer yoksa (Oto), hesaplanan açıyı göster ama input boş kalsın
             angleInput.value = "";
             angleInput.placeholder = "Oto";
-
-            // Otomatik açı hesabı (drawScreen'deki gibi)
             if (list.length > 1) {
               if (selectedPointIndex < list.length - 1) {
                 displayAngle = calculateRawHeading(
@@ -1285,7 +1291,6 @@
               }
             }
           }
-          // Slider'ı döndür
           handleRotator.style.transform = `rotate(${displayAngle}deg)`;
           // --------------------------------
         } else {
@@ -1454,10 +1459,13 @@
         generateFormattedOutput(processedPoints);
       }
 
+      // --- ADAPTIVE SAMPLING (Eğri Çizgi) ---
       function getHermiteSplinePoints(points, segments) {
         if (points.length < 2) return points;
         let splinePoints = [];
         let tangents = [];
+
+        // Teğetleri hesapla
         for (let i = 0; i < points.length; i++) {
           let tX, tY;
           let magnitude = 0;
@@ -1478,6 +1486,7 @@
           tangents.push({ x: tX, y: tY });
         }
 
+        // Noktalar arası interpolasyon
         for (let i = 0; i < points.length - 1; i++) {
           let p0 = points[i];
           let p1 = points[i + 1];
@@ -1487,8 +1496,14 @@
           let segSpeed = p1.speed || "127";
           let segDir = p1.dir || "fwd";
 
-          for (let t = 0; t <= segments; t++) {
-            let s = t / segments;
+          // ADAPTIVE: Mesafeyi ölç
+          let distPixels = Math.hypot(p1.x - p0.x, p1.y - p0.y);
+          // Her 2 piksel için 1 nokta oluştur (Yoğunluk)
+          let steps = Math.max(5, Math.floor(distPixels / 2));
+
+          for (let k = 0; k <= steps; k++) {
+            let t = k / steps;
+            let s = t;
             let s2 = s * s;
             let s3 = s2 * s;
             let h1 = 2 * s3 - 3 * s2 + 1;
@@ -1509,11 +1524,13 @@
         return splinePoints;
       }
 
+      // --- ADAPTIVE SAMPLING (Düz Çizgi) ---
       function getVisualPathPoints() {
         if (processedPoints.length < 2) return [];
 
         if (curveToggle.checked) {
-          return getHermiteSplinePoints(processedPoints, 40);
+          // Spline fonksiyonu zaten adaptive hale getirildi
+          return getHermiteSplinePoints(processedPoints, 0);
         } else {
           let pts = [];
           for (let i = 0; i < processedPoints.length - 1; i++) {
@@ -1523,7 +1540,13 @@
             let segSpeed = p2.speed || "127";
             let segDir = p2.dir || "fwd";
 
-            for (let t = 0; t < 1; t += 0.02) {
+            // ADAPTIVE: Mesafeyi ölç
+            let distPixels = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+            // Her 2 piksel için 1 nokta
+            let steps = Math.max(2, Math.floor(distPixels / 2));
+
+            for (let k = 0; k < steps; k++) {
+              let t = k / steps;
               pts.push({
                 x: p1.x + (p2.x - p1.x) * t,
                 y: p1.y + (p2.y - p1.y) * t,
