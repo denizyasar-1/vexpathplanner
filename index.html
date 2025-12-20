@@ -3,10 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VEX Path Planner - Pro Editor v30</title>
-
-    <link rel="icon" href="ibb_logo_favicon.jpg" type="image/jpeg" />
-
+    <title>VEX Path Planner - Pro Editor v31 (Relative Origin)</title>
     <style>
       /* GENEL SAYFA DÜZENİ */
       body {
@@ -28,17 +25,6 @@
         margin: 10px 0 5px 0;
         font-size: 1.4rem;
         flex-shrink: 0;
-      }
-
-      /* 2. EKLEME: SAĞ ÜST LOGO STİLİ */
-      .top-right-logo {
-        position: absolute;
-        top: 15px;
-        right: 15px;
-        width: 60px; /* Logo boyutu */
-        height: auto;
-        z-index: 100;
-        border-radius: 5px; /* Hafif yuvarlak köşeler */
       }
 
       /* DOSYA MENÜSÜ */
@@ -243,6 +229,10 @@
       }
       input:checked + .slider.pink {
         background-color: #d63384;
+      }
+      /* Yeni turuncu slider (Orijin için) */
+      input:checked + .slider.orange {
+        background-color: #fd7e14;
       }
       input:checked + .slider:before {
         transform: translateX(18px);
@@ -507,8 +497,6 @@
     </style>
   </head>
   <body>
-    <img src="ibb_logo.jpg" alt="İBB Tech Logo" class="top-right-logo" />
-
     <div class="file-menu-container">
       <div class="dropdown">
         <button class="dropbtn">Dosya</button>
@@ -528,7 +516,7 @@
       />
     </div>
 
-    <h1>VEX Path Planner - Pro Editor v30</h1>
+    <h1>VEX Path Planner - Pro Editor v31</h1>
 
     <div class="top-controls">
       <div class="switch-container">
@@ -543,6 +531,17 @@
           <span class="slider"></span>
         </label>
         <span id="modeLabel">Nokta Ekleme</span>
+      </div>
+
+      <span style="border-left: 1px solid #555; height: 20px"></span>
+
+      <div class="switch-container">
+        <span style="font-size: 12px; color: #aaa">ORİJİN:</span>
+        <label class="switch">
+          <input type="checkbox" id="originToggle" onchange="toggleOrigin()" />
+          <span class="slider orange"></span>
+        </label>
+        <span id="originLabel">Merkez</span>
       </div>
 
       <span style="border-left: 1px solid #555; height: 20px"></span>
@@ -816,6 +815,11 @@
       let isPlaying = false;
       let animationFrameId = null;
 
+      // Orijin Ayarı
+      const originToggle = document.getElementById("originToggle");
+      const originLabel = document.getElementById("originLabel");
+      let isRelativeOrigin = false;
+
       const pointNameInput = document.getElementById("pointNameInput");
       const pointSpeedInput = document.getElementById("pointSpeedInput");
       const pointDirInput = document.getElementById("pointDirInput");
@@ -842,6 +846,34 @@
       bgImage.onload = function () {
         drawScreen();
       };
+
+      // --- ORİJİN FONKSİYONU ---
+      function toggleOrigin() {
+        isRelativeOrigin = originToggle.checked;
+        if (isRelativeOrigin) {
+          originLabel.innerText = "Başlangıç";
+        } else {
+          originLabel.innerText = "Merkez";
+        }
+        drawScreen();
+        updateSelectionUI(); // Koordinat kutularını güncelle
+        generateFormattedOutput(isPointMode ? rawPoints : processedPoints);
+      }
+
+      // --- SÜREKLİ GÜNCEL GENEL HIZ FONKSİYONU ---
+      function updateGlobalSpeed() {
+        let val = globalSpeedInput.value;
+        // Tüm ham noktaların hızını güncelle
+        for (let i = 0; i < rawPoints.length; i++) {
+          rawPoints[i].speed = val;
+        }
+        // Eğer seçili bir nokta varsa onun inputunu da güncelle
+        if (selectedPointIndex !== -1) {
+          pointSpeedInput.value = val;
+        }
+        // Yolu tekrar işle ve çıktı üret
+        processPath(true);
+      }
 
       // --- ANIMASYON MANTIĞI ---
       function toggleAnimation() {
@@ -877,9 +909,10 @@
           if (path[Math.floor(currentSimIndex)].speed)
             currentSpeed = parseInt(path[Math.floor(currentSimIndex)].speed);
 
-          let speedFactor = currentSpeed / 200;
+          // Normal Hız (Yavaşlatma yok)
+          let step = currentSpeed / 40;
 
-          currentSimIndex += speedFactor;
+          currentSimIndex += step;
           if (currentSimIndex >= path.length - 1) {
             currentSimIndex = path.length - 1;
             isPlaying = false;
@@ -934,7 +967,7 @@
       function savePath() {
         let listToSave = isPointMode || isDrawing ? rawPoints : processedPoints;
         const data = {
-          version: "v30",
+          version: "v31",
           points: listToSave,
           settings: {
             isPointMode: isPointMode,
@@ -946,6 +979,7 @@
               height: simHeightInput.value,
               show: simToggle.checked,
             },
+            relativeOrigin: isRelativeOrigin,
           },
         };
 
@@ -985,6 +1019,10 @@
                 simWidthInput.value = data.settings.robotSim.width;
                 simHeightInput.value = data.settings.robotSim.height;
                 simToggle.checked = data.settings.robotSim.show;
+              }
+              if (data.settings.relativeOrigin !== undefined) {
+                originToggle.checked = data.settings.relativeOrigin;
+                toggleOrigin();
               }
             }
             selectedPointIndex = -1;
@@ -1035,8 +1073,6 @@
         }
         processPath();
       }
-
-      function updateGlobalSpeed() {}
 
       // --- MOUSE EVENTLERİ (CANVAS) ---
       canvas.addEventListener("mousedown", (e) => {
@@ -1129,6 +1165,7 @@
             targetList[selectedPointIndex].x = mx;
             targetList[selectedPointIndex].y = my;
 
+            // Manuel sürüklerken de yeni modda doğru değer yazmalı
             const coords = getCoordinatesInches(targetList[selectedPointIndex]);
             coordXInput.value = coords.x.toFixed(2);
             coordYInput.value = coords.y.toFixed(2);
@@ -1173,19 +1210,15 @@
       function deleteSelectedPoint() {
         if (selectedPointIndex !== -1) {
           // BAŞLANGIÇ NOKTASINI SİLME KONTROLÜ KALDIRILDI
-          // ARTIK HER NOKTA SİLİNEBİLİR
-
           let list = isPointMode ? rawPoints : processedPoints;
 
           list.splice(selectedPointIndex, 1);
 
-          // Eğer hiç nokta kalmadıysa sıfırla
           if (list.length === 0) {
             clearCanvas();
             return;
           }
 
-          // Seçili index listeden taştıysa
           if (selectedPointIndex >= list.length) {
             selectedPointIndex = list.length - 1;
           }
@@ -1345,8 +1378,18 @@
         let newYInches = parseFloat(coordYInput.value);
         if (isNaN(newXInches) || isNaN(newYInches)) return;
 
-        let pX = newYInches * PIXELS_PER_INCH + CANVAS_SIZE / 2;
-        let pY = newXInches * PIXELS_PER_INCH + CANVAS_SIZE / 2;
+        // -- MANUEL GİRİŞTE ORİJİN DÜZELTMESİ --
+        let originX = CANVAS_SIZE / 2;
+        let originY = CANVAS_SIZE / 2;
+        if (isRelativeOrigin && rawPoints.length > 0) {
+          originX = rawPoints[0].x;
+          originY = rawPoints[0].y;
+        }
+
+        // Inches -> Pixels (Origin ekleyerek)
+        let pX = newYInches * PIXELS_PER_INCH + originX; // Yatay (X)
+        let pY = newXInches * PIXELS_PER_INCH + originY; // Dikey (Y)
+        // ----------------------------------------
 
         list[selectedPointIndex].x = pX;
         list[selectedPointIndex].y = pY;
@@ -1463,7 +1506,6 @@
               name: "",
               speed: defaultSpeed,
               dir: "fwd",
-              dir: "fwd",
             });
 
             processedPoints = newPoints;
@@ -1512,7 +1554,6 @@
 
           // ADAPTIVE: Mesafeyi ölç
           let distPixels = Math.hypot(p1.x - p0.x, p1.y - p0.y);
-          // Her 2 piksel için 1 nokta oluştur (Yoğunluk)
           let steps = Math.max(5, Math.floor(distPixels / 2));
 
           for (let k = 0; k <= steps; k++) {
@@ -1543,7 +1584,6 @@
         if (processedPoints.length < 2) return [];
 
         if (curveToggle.checked) {
-          // Spline fonksiyonu zaten adaptive hale getirildi
           return getHermiteSplinePoints(processedPoints, 0);
         } else {
           let pts = [];
@@ -1554,9 +1594,8 @@
             let segSpeed = p2.speed || "127";
             let segDir = p2.dir || "fwd";
 
-            // ADAPTIVE: Mesafeyi ölç
+            // ADAPTIVE
             let distPixels = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-            // Her 2 piksel için 1 nokta
             let steps = Math.max(2, Math.floor(distPixels / 2));
 
             for (let k = 0; k < steps; k++) {
@@ -1765,8 +1804,15 @@
       }
 
       function drawOriginPoint() {
-        const ox = CANVAS_SIZE / 2;
-        const oy = CANVAS_SIZE / 2;
+        const ox =
+          isRelativeOrigin && rawPoints.length > 0
+            ? rawPoints[0].x
+            : CANVAS_SIZE / 2;
+        const oy =
+          isRelativeOrigin && rawPoints.length > 0
+            ? rawPoints[0].y
+            : CANVAS_SIZE / 2;
+
         ctx.fillStyle = "yellow";
         ctx.beginPath();
         ctx.arc(ox, oy, 4, 0, Math.PI * 2);
@@ -1794,11 +1840,22 @@
         return deg;
       }
 
+      // --- KOORDİNAT HESABI (YENİ ORİJİN İLE) ---
       function getCoordinatesInches(point) {
-        let pixelX = point.x - CANVAS_SIZE / 2;
-        let pixelY = point.y - CANVAS_SIZE / 2;
+        let originX = CANVAS_SIZE / 2;
+        let originY = CANVAS_SIZE / 2;
+
+        if (isRelativeOrigin && rawPoints.length > 0) {
+          originX = rawPoints[0].x;
+          originY = rawPoints[0].y;
+        }
+
+        let pixelX = point.x - originX;
+        let pixelY = point.y - originY;
+
         let inchesY = pixelX / PIXELS_PER_INCH;
         let inchesX = pixelY / PIXELS_PER_INCH;
+
         return { x: inchesX, y: inchesY };
       }
 
@@ -1847,9 +1904,8 @@
 
             let lineData = `{${xF}_in, ${yF}_in, ${aF}_deg, ${ptDir}, ${ptSpeed}}`;
 
-            // DÜZELTME: Virgül, veri bloğunun hemen yanına ekleniyor (yorumdan önce)
             if (i > 1) outputText += "\n";
-            outputText += "      " + lineData;
+            outputText += "      " + lineData;
 
             if (i < points.length - 1) {
               outputText += ",";
@@ -1862,7 +1918,7 @@
         }
 
         if (points.length === 1) {
-          outputText += "      // Hareket için daha fazla nokta ekleyin...\n";
+          outputText += "      // Hareket için daha fazla nokta ekleyin...\n";
         }
 
         outputText += "\n}, true);";
