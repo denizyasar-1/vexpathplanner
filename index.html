@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="ibb_logo_favicon.jpg" type="image/jpeg" />
-    <title>VEX Path Planner - Pro Editor v31 (Relative Origin)</title>
+    <title>VEX Path Planner - Pro Editor v33 (Pid Wait Added)</title>
     <style>
       /* GENEL SAYFA DÜZENİ */
       body {
@@ -231,7 +231,7 @@
       input:checked + .slider.pink {
         background-color: #d63384;
       }
-      /* Yeni turuncu slider (Orijin için) */
+      /* Turuncu slider (Orijin) */
       input:checked + .slider.orange {
         background-color: #fd7e14;
       }
@@ -496,6 +496,17 @@
         width: 100%;
       }
 
+      /* SAĞ ÜST LOGO */
+      .top-right-logo {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        width: 60px;
+        height: auto;
+        z-index: 100;
+        border-radius: 5px;
+      }
+
       /* 2. EKLEME: SAĞ ÜST LOGO STİLİ */
       .top-right-logo {
         position: absolute;
@@ -529,7 +540,7 @@
       />
     </div>
 
-    <h1>VEX Path Planner - Pro Editor v31</h1>
+    <h1>VEX Path Planner - Pro Editor v33</h1>
 
     <div class="top-controls">
       <div class="switch-container">
@@ -833,6 +844,11 @@
       const originLabel = document.getElementById("originLabel");
       let isRelativeOrigin = false;
 
+      // Undo/Redo Yığınları
+      let undoStack = [];
+      let redoStack = [];
+      const MAX_STACK_SIZE = 50;
+
       const pointNameInput = document.getElementById("pointNameInput");
       const pointSpeedInput = document.getElementById("pointSpeedInput");
       const pointDirInput = document.getElementById("pointDirInput");
@@ -860,6 +876,93 @@
         drawScreen();
       };
 
+      // --- UNDO / REDO SİSTEMİ ---
+      function saveState() {
+        const state = {
+          rawPoints: JSON.parse(JSON.stringify(rawPoints)),
+          processedPoints: JSON.parse(JSON.stringify(processedPoints)),
+          selectedPointIndex: selectedPointIndex,
+          isPointMode: isPointMode,
+        };
+        undoStack.push(state);
+        if (undoStack.length > MAX_STACK_SIZE) undoStack.shift();
+        redoStack = []; // Yeni işlem yapıldığında redo sıfırlanır
+      }
+
+      function undo() {
+        if (undoStack.length === 0) return;
+
+        // Mevcut hali redo'ya at
+        const currentState = {
+          rawPoints: JSON.parse(JSON.stringify(rawPoints)),
+          processedPoints: JSON.parse(JSON.stringify(processedPoints)),
+          selectedPointIndex: selectedPointIndex,
+          isPointMode: isPointMode,
+        };
+        redoStack.push(currentState);
+
+        // Undo'dan al
+        const prevState = undoStack.pop();
+        restoreState(prevState);
+      }
+
+      function redo() {
+        if (redoStack.length === 0) return;
+
+        // Mevcut hali undo'ya at
+        const currentState = {
+          rawPoints: JSON.parse(JSON.stringify(rawPoints)),
+          processedPoints: JSON.parse(JSON.stringify(processedPoints)),
+          selectedPointIndex: selectedPointIndex,
+          isPointMode: isPointMode,
+        };
+        undoStack.push(currentState);
+
+        // Redo'dan al
+        const nextState = redoStack.pop();
+        restoreState(nextState);
+      }
+
+      function restoreState(state) {
+        rawPoints = state.rawPoints;
+        processedPoints = state.processedPoints;
+        selectedPointIndex = state.selectedPointIndex;
+        isPointMode = state.isPointMode;
+
+        // UI senkronizasyonu
+        document.getElementById("modeToggle").checked = isPointMode;
+        // Toggle UI güncelleme fonksiyonu çağrılabilir ama basitçe:
+        modeLabel.innerText = isPointMode ? "Nokta Ekleme" : "Serbest Çizim";
+
+        updateSelectionUI();
+        drawScreen();
+        generateFormattedOutput(isPointMode ? rawPoints : processedPoints);
+      }
+
+      // 'Geri Al' butonu artık genel undo fonksiyonunu çağırıyor
+      function undoLastPoint() {
+        undo();
+      }
+
+      // --- KLAVYE KISAYOLLARI (GÜNCELLENDİ) ---
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Delete") {
+          if (selectedPointIndex !== -1) deleteSelectedPoint();
+        }
+
+        // Ctrl+Z (Undo)
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+          e.preventDefault();
+          undo();
+        }
+
+        // Ctrl+Y (Redo)
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") {
+          e.preventDefault();
+          redo();
+        }
+      });
+
       // --- ORİJİN FONKSİYONU ---
       function toggleOrigin() {
         isRelativeOrigin = originToggle.checked;
@@ -869,26 +972,24 @@
           originLabel.innerText = "Merkez";
         }
         drawScreen();
-        updateSelectionUI(); // Koordinat kutularını güncelle
+        updateSelectionUI();
         generateFormattedOutput(isPointMode ? rawPoints : processedPoints);
       }
 
       // --- SÜREKLİ GÜNCEL GENEL HIZ FONKSİYONU ---
       function updateGlobalSpeed() {
+        saveState(); // Değişiklik öncesi kaydet
         let val = globalSpeedInput.value;
-        // Tüm ham noktaların hızını güncelle
         for (let i = 0; i < rawPoints.length; i++) {
           rawPoints[i].speed = val;
         }
-        // Eğer seçili bir nokta varsa onun inputunu da güncelle
         if (selectedPointIndex !== -1) {
           pointSpeedInput.value = val;
         }
-        // Yolu tekrar işle ve çıktı üret
         processPath(true);
       }
 
-      // --- ANIMASYON MANTIĞI ---
+      // --- ANIMASYON MANTIĞI (DÜZELTİLDİ: Normal Hız) ---
       function toggleAnimation() {
         if (!simToggle.checked) {
           alert("Lütfen önce Robot Görünümünü (Göster) açın.");
@@ -900,7 +1001,6 @@
         if (isPlaying) {
           playBtn.innerHTML = "⏹ Durdur";
           playBtn.classList.add("playing");
-          // Eğer sonda ise başa al
           let path = getVisualPathPoints();
           if (currentSimIndex >= path.length - 1) {
             currentSimIndex = 0;
@@ -922,10 +1022,10 @@
           if (path[Math.floor(currentSimIndex)].speed)
             currentSpeed = parseInt(path[Math.floor(currentSimIndex)].speed);
 
-          // Normal Hız (Yavaşlatma yok)
-          let step = currentSpeed / 40;
+          // Hız faktörü: Orjinal (Hızlı)
+          let speedFactor = currentSpeed / 40;
 
-          currentSimIndex += step;
+          currentSimIndex += speedFactor;
           if (currentSimIndex >= path.length - 1) {
             currentSimIndex = path.length - 1;
             isPlaying = false;
@@ -937,8 +1037,9 @@
         }
       }
 
-      // --- KNOB EVENTLERİ ---
+      // --- KNOB EVENTLERİ (GÜNCELLENDİ: saveState eklendi) ---
       knobHandle.addEventListener("mousedown", (e) => {
+        saveState(); // Sürükleme başlangıcında kaydet
         isKnobDragging = true;
         e.preventDefault();
         e.stopPropagation();
@@ -950,7 +1051,6 @@
       });
 
       document.addEventListener("mousemove", (e) => {
-        // Knob işlemi
         if (isKnobDragging) {
           const rect = knobContainer.getBoundingClientRect();
           const centerX = rect.left + rect.width / 2;
@@ -961,26 +1061,15 @@
           let degrees = radians * (180 / Math.PI);
           degrees = Math.round(degrees);
           handleRotator.style.transform = `rotate(${degrees}deg)`;
-          manualAngleChange(degrees);
+          manualAngleChange(degrees, false); // false = don't save state again during drag
         }
       });
       // -----------------------
 
-      // --- KLAVYE VE DOSYA ---
-      document.addEventListener("keydown", (e) => {
-        if (e.key === "Delete") {
-          if (selectedPointIndex !== -1) deleteSelectedPoint();
-        }
-        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
-          e.preventDefault();
-          undoLastPoint();
-        }
-      });
-
       function savePath() {
         let listToSave = isPointMode || isDrawing ? rawPoints : processedPoints;
         const data = {
-          version: "v31",
+          version: "v32",
           points: listToSave,
           settings: {
             isPointMode: isPointMode,
@@ -1014,6 +1103,9 @@
         const reader = new FileReader();
         reader.onload = function (e) {
           try {
+            // Yükleme öncesi mevcut hali kaydet (geri alınabilsin diye)
+            saveState();
+
             const data = JSON.parse(e.target.result);
             if (data.points) {
               rawPoints = data.points;
@@ -1053,6 +1145,11 @@
 
       // --- MOD YÖNETİMİ ---
       function toggleMode() {
+        // saveState() burada çağırmıyoruz, çünkü veri değişmiyor sadece görünüm değişiyor,
+        // ama çizim moduna geçince eski noktalar siliniyorsa o zaman eklenmeli.
+        // Mevcut kodda: toggleMode içinde clearCanvasKeepPoints yapılıyor. Veri kaybı yok.
+        // Ancak Free Draw moduna geçince, mouse tıklandığında eski noktalar siliniyor (logic aşağıda).
+
         const toggle = document.getElementById("modeToggle");
         isPointMode = toggle.checked;
 
@@ -1101,7 +1198,6 @@
             let dist = Math.hypot(p.x - mx, p.y - my);
             if (dist < 40) {
               isSimDragging = true;
-              // Oynatılıyorsa durdur
               if (isPlaying) toggleAnimation();
               return;
             }
@@ -1118,14 +1214,19 @@
           }
         }
 
+        // Nokta seçimi
         if (clickedIndex !== -1) {
           selectedPointIndex = clickedIndex;
           isDragging = true;
+          // Sürükleme başlıyor, durumu kaydet
+          saveState();
+
           updateSelectionUI();
           drawScreen();
           return;
         }
 
+        // Boşa tıklama (seçimi kaldır)
         if (selectedPointIndex !== -1) {
           selectedPointIndex = -1;
           updateSelectionUI();
@@ -1133,15 +1234,19 @@
           return;
         }
 
+        // Yeni nokta ekleme
         if (isPointMode) {
+          saveState(); // Eklemeden önce kaydet
           addRawPoint(mx, my);
           processPath();
           selectedPointIndex = rawPoints.length - 1;
-          isDragging = true;
+          isDragging = true; // Ekledikten sonra hemen sürükleyebilsin
           updateSelectionUI();
         } else {
+          // Free draw başlangıcı
+          saveState();
           isDrawing = true;
-          rawPoints = [];
+          rawPoints = []; // Eski noktalar siliniyor
           processedPoints = [];
           selectedPointIndex = -1;
           addRawPoint(mx, my);
@@ -1178,7 +1283,6 @@
             targetList[selectedPointIndex].x = mx;
             targetList[selectedPointIndex].y = my;
 
-            // Manuel sürüklerken de yeni modda doğru değer yazmalı
             const coords = getCoordinatesInches(targetList[selectedPointIndex]);
             coordXInput.value = coords.x.toFixed(2);
             coordYInput.value = coords.y.toFixed(2);
@@ -1190,6 +1294,9 @@
         }
 
         if (!isPointMode && isDrawing) {
+          // Free draw sırasında çok fazla nokta oluşur.
+          // Hepsini undo stack'e atmak performansı bozar.
+          // Sadece 'mousedown' da bir kere saveState yaptık, o yeterli.
           addRawPoint(mx, my);
           drawScreen();
         }
@@ -1222,7 +1329,8 @@
 
       function deleteSelectedPoint() {
         if (selectedPointIndex !== -1) {
-          // BAŞLANGIÇ NOKTASINI SİLME KONTROLÜ KALDIRILDI
+          saveState(); // Silmeden önce kaydet
+
           let list = isPointMode ? rawPoints : processedPoints;
 
           list.splice(selectedPointIndex, 1);
@@ -1241,17 +1349,8 @@
         }
       }
 
-      function undoLastPoint() {
-        let targetList = isPointMode ? rawPoints : processedPoints;
-        if (targetList.length > 1) {
-          targetList.pop();
-          selectedPointIndex = -1;
-          updateSelectionUI();
-          processPath(true);
-        }
-      }
-
       function clearCanvas() {
+        saveState(); // Temizlemeden önce kaydet
         rawPoints = [];
         processedPoints = [];
         selectedPointIndex = -1;
@@ -1262,9 +1361,10 @@
       }
 
       function mirrorPath(axis) {
-        let targetList = isPointMode || isDrawing ? rawPoints : processedPoints;
-        if (targetList.length === 0) return;
+        if (rawPoints.length === 0) return;
+        saveState(); // Aynalamadan önce kaydet
 
+        let targetList = isPointMode || isDrawing ? rawPoints : processedPoints;
         const cx = CANVAS_SIZE / 2;
         const cy = CANVAS_SIZE / 2;
 
@@ -1314,7 +1414,6 @@
           if (selectedPointIndex === 0) {
             pointNameInput.value = "Başlangıç Noktası";
             pointNameInput.disabled = true;
-            // ARTIK SİLME BUTONU AKTİF
             deleteBtn.disabled = false;
             deleteBtn.style.opacity = "1";
             movementSettings.style.display = "none";
@@ -1359,13 +1458,27 @@
       }
 
       function manualNameChange(val) {
+        // İsim değişikliğinde her harf için undo kaydetmek aşırı olur
+        // Ama basitlik için şimdilik buraya saveState ekliyoruz
+        // İdealde onfocus/onblur kullanılır ama bu yapı yeterli
         if (selectedPointIndex !== -1 && selectedPointIndex !== 0) {
+          // Bu örnekte her harfte kaydetmemek için saveState'i iptal edebilirsin
+          // Ama "her türlü değişiklik" dendiği için eklemek daha güvenli,
+          // sadece stack çok hızlı dolar.
+          // Çözüm: Sadece UI update yap, saveState yok.
           let list = isPointMode ? rawPoints : processedPoints;
           list[selectedPointIndex].name = val;
           drawScreen();
           generateFormattedOutput(list);
         }
       }
+
+      // Inputlara onfocus ekleyerek "değişiklik öncesi" durumu kaydedebiliriz
+      pointNameInput.addEventListener("focus", saveState);
+      pointSpeedInput.addEventListener("focus", saveState);
+      coordXInput.addEventListener("focus", saveState);
+      coordYInput.addEventListener("focus", saveState);
+      angleInput.addEventListener("focus", saveState);
 
       function manualSpeedChange(val) {
         if (selectedPointIndex !== -1 && selectedPointIndex !== 0) {
@@ -1377,6 +1490,7 @@
 
       function manualDirChange(val) {
         if (selectedPointIndex !== -1 && selectedPointIndex !== 0) {
+          saveState(); // Yön değişimi tek seferlik, kaydet
           let list = isPointMode ? rawPoints : processedPoints;
           list[selectedPointIndex].dir = val;
           generateFormattedOutput(list);
@@ -1384,6 +1498,7 @@
       }
 
       function manualCoordChange() {
+        // focus event'inde saveState çağrılıyor
         if (selectedPointIndex === -1) return;
         let list = isPointMode ? rawPoints : processedPoints;
 
@@ -1391,7 +1506,6 @@
         let newYInches = parseFloat(coordYInput.value);
         if (isNaN(newXInches) || isNaN(newYInches)) return;
 
-        // -- MANUEL GİRİŞTE ORİJİN DÜZELTMESİ --
         let originX = CANVAS_SIZE / 2;
         let originY = CANVAS_SIZE / 2;
         if (isRelativeOrigin && rawPoints.length > 0) {
@@ -1399,10 +1513,8 @@
           originY = rawPoints[0].y;
         }
 
-        // Inches -> Pixels (Origin ekleyerek)
-        let pX = newYInches * PIXELS_PER_INCH + originX; // Yatay (X)
-        let pY = newXInches * PIXELS_PER_INCH + originY; // Dikey (Y)
-        // ----------------------------------------
+        let pX = newYInches * PIXELS_PER_INCH + originX;
+        let pY = newXInches * PIXELS_PER_INCH + originY;
 
         list[selectedPointIndex].x = pX;
         list[selectedPointIndex].y = pY;
@@ -1410,7 +1522,11 @@
         generateFormattedOutput(list);
       }
 
-      function manualAngleChange(val) {
+      function manualAngleChange(val, shouldSave = true) {
+        if (shouldSave) {
+          // Sadece manuel input girişinde kaydet (knob kendi kaydediyor)
+          // focus eventi zaten hallediyor, burayı boş geçebiliriz
+        }
         if (selectedPointIndex !== -1) {
           let list = isPointMode ? rawPoints : processedPoints;
           let angleVal = parseFloat(val);
@@ -1428,6 +1544,7 @@
 
       function rotateAngle(delta) {
         if (selectedPointIndex !== -1) {
+          saveState(); // Butona basınca kaydet
           let list = isPointMode ? rawPoints : processedPoints;
           let current = list[selectedPointIndex].customHeading;
           if (current === null) current = 0;
@@ -1443,6 +1560,7 @@
 
       function resetAngle() {
         if (selectedPointIndex !== -1) {
+          saveState(); // Resetlemeden önce kaydet
           let list = isPointMode ? rawPoints : processedPoints;
           list[selectedPointIndex].customHeading = null;
           updateSelectionUI();
@@ -1567,6 +1685,7 @@
 
           // ADAPTIVE: Mesafeyi ölç
           let distPixels = Math.hypot(p1.x - p0.x, p1.y - p0.y);
+          // Her 2 piksel için 1 nokta oluştur (Yoğunluk)
           let steps = Math.max(5, Math.floor(distPixels / 2));
 
           for (let k = 0; k <= steps; k++) {
@@ -1597,6 +1716,7 @@
         if (processedPoints.length < 2) return [];
 
         if (curveToggle.checked) {
+          // Spline fonksiyonu zaten adaptive hale getirildi
           return getHermiteSplinePoints(processedPoints, 0);
         } else {
           let pts = [];
@@ -1607,8 +1727,9 @@
             let segSpeed = p2.speed || "127";
             let segDir = p2.dir || "fwd";
 
-            // ADAPTIVE
+            // ADAPTIVE: Mesafeyi ölç
             let distPixels = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+            // Her 2 piksel için 1 nokta
             let steps = Math.max(2, Math.floor(distPixels / 2));
 
             for (let k = 0; k < steps; k++) {
@@ -1853,22 +1974,11 @@
         return deg;
       }
 
-      // --- KOORDİNAT HESABI (YENİ ORİJİN İLE) ---
       function getCoordinatesInches(point) {
-        let originX = CANVAS_SIZE / 2;
-        let originY = CANVAS_SIZE / 2;
-
-        if (isRelativeOrigin && rawPoints.length > 0) {
-          originX = rawPoints[0].x;
-          originY = rawPoints[0].y;
-        }
-
-        let pixelX = point.x - originX;
-        let pixelY = point.y - originY;
-
+        let pixelX = point.x - CANVAS_SIZE / 2;
+        let pixelY = point.y - CANVAS_SIZE / 2;
         let inchesY = pixelX / PIXELS_PER_INCH;
         let inchesX = pixelY / PIXELS_PER_INCH;
-
         return { x: inchesX, y: inchesY };
       }
 
@@ -1934,7 +2044,7 @@
           outputText += "      // Hareket için daha fazla nokta ekleyin...\n";
         }
 
-        outputText += "\n}, true);";
+        outputText += "\n}, true);\nchassis.pid_wait();";
         outputBox.value = outputText;
       }
 
