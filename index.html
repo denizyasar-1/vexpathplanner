@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="ibb_logo_favicon.jpg" type="image/jpeg" />
     <title>VEX Path Planner - Pro Editor v31 (Relative Origin)</title>
     <style>
       /* GENEL SAYFA DÜZENİ */
@@ -494,9 +495,21 @@
         margin-top: 5px;
         width: 100%;
       }
+
+      /* 2. EKLEME: SAĞ ÜST LOGO STİLİ */
+      .top-right-logo {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        width: 60px; /* Logo boyutu */
+        height: auto;
+        z-index: 100;
+        border-radius: 5px; /* Hafif yuvarlak köşeler */
+      }
     </style>
   </head>
   <body>
+    <img src="ibb_logo.jpg" alt="İBB Tech Logo" class="top-right-logo" />
     <div class="file-menu-container">
       <div class="dropdown">
         <button class="dropbtn">Dosya</button>
