@@ -3,7 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VEX Path Planner - Pro Editor v13</title>
+    <title>VEX Path Planner - Pro Editor v30</title>
+
+    <link rel="icon" href="ibb_logo_favicon.jpg" type="image/jpeg" />
+
     <style>
       /* GENEL SAYFA DÜZENİ */
       body {
@@ -13,16 +16,146 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        padding: 10px;
+        padding: 0;
         margin: 0;
         height: 100vh;
+        width: 100vw;
         overflow: hidden;
       }
 
       h1 {
         color: #fff;
-        margin: 5px 0 10px 0;
+        margin: 10px 0 5px 0;
         font-size: 1.4rem;
+        flex-shrink: 0;
+      }
+
+      /* 2. EKLEME: SAĞ ÜST LOGO STİLİ */
+      .top-right-logo {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        width: 60px; /* Logo boyutu */
+        height: auto;
+        z-index: 100;
+        border-radius: 5px; /* Hafif yuvarlak köşeler */
+      }
+
+      /* DOSYA MENÜSÜ */
+      .file-menu-container {
+        position: absolute;
+        top: 15px;
+        left: 15px;
+        z-index: 100;
+      }
+
+      .dropbtn {
+        background-color: #007bff;
+        color: white;
+        padding: 10px 20px;
+        font-size: 14px;
+        border: none;
+        cursor: pointer;
+        border-radius: 5px;
+        font-weight: bold;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+      }
+
+      .dropdown {
+        position: relative;
+        display: inline-block;
+      }
+      .dropdown-content {
+        display: none;
+        position: absolute;
+        background-color: #2d2d2d;
+        min-width: 160px;
+        box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+        z-index: 1;
+        border-radius: 5px;
+        border: 1px solid #444;
+      }
+      .dropdown-content a {
+        color: #ccc;
+        padding: 12px 16px;
+        text-decoration: none;
+        display: block;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .dropdown-content a:hover {
+        background-color: #444;
+        color: #fff;
+      }
+      .dropdown:hover .dropdown-content {
+        display: block;
+      }
+      .dropdown:hover .dropbtn {
+        background-color: #0056b3;
+      }
+
+      /* ROBOT SİMÜLASYON MENÜSÜ */
+      .left-sidebar {
+        width: 180px;
+        height: 100%;
+        background-color: #252526;
+        border: 1px solid #3e3e42;
+        border-radius: 8px;
+        padding: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        box-sizing: border-box;
+        flex-shrink: 0;
+        overflow-y: auto;
+      }
+      .left-sidebar h3 {
+        margin: 0;
+        font-size: 1rem;
+        color: #d63384;
+        border-bottom: 1px solid #444;
+        padding-bottom: 5px;
+        text-align: center;
+      }
+      .left-sidebar input[type="number"] {
+        width: 100%;
+        background: #444;
+        border: 1px solid #555;
+        color: #fff;
+        padding: 6px;
+        border-radius: 4px;
+        text-align: center;
+        box-sizing: border-box;
+      }
+
+      /* PLAY BUTONU */
+      .play-btn {
+        background-color: #28a745;
+        color: white;
+        flex: none !important;
+        height: 32px;
+        padding: 0 10px;
+        font-size: 0.8rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+        width: 100%;
+        margin-top: auto;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 5px;
+      }
+      .play-btn:hover {
+        background-color: #218838;
+      }
+      .play-btn.playing {
+        background-color: #dc3545;
+      }
+      .play-btn.playing:hover {
+        background-color: #c82333;
       }
 
       /* ÜST KONTROL BAR */
@@ -36,6 +169,7 @@
         gap: 15px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
         z-index: 10;
+        flex-shrink: 0;
       }
 
       .top-controls label {
@@ -64,8 +198,9 @@
         align-items: center;
         gap: 8px;
         background: #383838;
-        padding: 4px 12px;
+        padding: 6px 12px;
         border-radius: 20px;
+        justify-content: space-between;
       }
       .switch {
         position: relative;
@@ -106,6 +241,9 @@
       input:checked + .slider.green {
         background-color: #28a745;
       }
+      input:checked + .slider.pink {
+        background-color: #d63384;
+      }
       input:checked + .slider:before {
         transform: translateX(18px);
       }
@@ -115,8 +253,11 @@
         display: flex;
         gap: 15px;
         justify-content: center;
-        align-items: flex-start;
-        height: calc(100vh - 80px);
+        align-items: center;
+        height: calc(100vh - 120px);
+        width: 98%;
+        padding-bottom: 10px;
+        box-sizing: border-box;
       }
 
       .canvas-wrapper {
@@ -126,6 +267,7 @@
         height: 600px;
         flex-shrink: 0;
         cursor: crosshair;
+        margin: auto 0;
       }
       canvas {
         position: absolute;
@@ -142,9 +284,10 @@
         display: flex;
         flex-direction: column;
         gap: 10px;
-        height: 600px;
+        height: 100%;
         box-sizing: border-box;
         overflow-y: auto;
+        flex-shrink: 0;
       }
       .settings-panel h3 {
         margin: 0;
@@ -180,10 +323,6 @@
         text-align: center;
         font-family: monospace;
       }
-      .coord-inputs span {
-        font-size: 0.8rem;
-        color: #888;
-      }
 
       .angle-control {
         display: flex;
@@ -201,11 +340,6 @@
         font-size: 0.8rem;
         background-color: #555;
       }
-      input[type="range"] {
-        width: 100%;
-        accent-color: #ff9f43;
-        margin: 5px 0;
-      }
 
       .full-width-input {
         width: 95%;
@@ -215,7 +349,6 @@
         padding: 4px;
         margin-top: 2px;
       }
-
       select {
         width: 100%;
         background: #222;
@@ -225,6 +358,82 @@
         border-radius: 4px;
       }
 
+      /* KNOB CSS */
+      .knob-wrapper {
+        display: flex;
+        justify-content: center;
+        margin: 10px 0;
+      }
+      .knob-container {
+        position: relative;
+        width: 100px;
+        height: 100px;
+        background-color: #222;
+        border-radius: 50%;
+        box-shadow: inset 0 0 10px #000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border: 1px solid #444;
+      }
+      .knob-track {
+        position: absolute;
+        width: 85%;
+        height: 85%;
+        border-radius: 50%;
+        border: 4px solid #444;
+        box-sizing: border-box;
+      }
+      .handle-rotator {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+        transform-origin: center center;
+        pointer-events: none;
+        transform: rotate(0deg);
+      }
+
+      .knob-handle {
+        position: absolute;
+        width: 18px;
+        height: 18px;
+        background-color: #ff9f43;
+        border-radius: 50%;
+        border: 2px solid #fff;
+        left: 50%;
+        top: 50%;
+        transform: translate(calc(-50% + 40.5px), -50%);
+        cursor: grab;
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+        pointer-events: auto;
+        transition: background-color 0.2s;
+      }
+
+      .knob-handle::after {
+        content: "";
+        position: absolute;
+        left: 100%;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 0;
+        height: 0;
+        border-top: 6px solid transparent;
+        border-bottom: 6px solid transparent;
+        border-left: 8px solid #ff9f43;
+      }
+
+      .knob-handle:active {
+        cursor: grabbing;
+        background-color: #e67e22;
+      }
+      .knob-handle:active::after {
+        border-left-color: #e67e22;
+      }
+
+      /* --------------------------- */
+
       .output-panel {
         width: 310px;
         background-color: #2d2d2d;
@@ -233,8 +442,9 @@
         display: flex;
         flex-direction: column;
         gap: 8px;
-        height: 600px;
+        height: 100%;
         box-sizing: border-box;
+        flex-shrink: 0;
       }
       .tools-menu {
         background: #333;
@@ -297,7 +507,28 @@
     </style>
   </head>
   <body>
-    <h1>VEX Path Planner - Pro Editor v13</h1>
+    <img src="ibb_logo.jpg" alt="İBB Tech Logo" class="top-right-logo" />
+
+    <div class="file-menu-container">
+      <div class="dropdown">
+        <button class="dropbtn">Dosya</button>
+        <div class="dropdown-content">
+          <a onclick="savePath()">💾 Projeyi Kaydet</a>
+          <a onclick="document.getElementById('fileInput').click()"
+            >📂 Proje Yükle</a
+          >
+        </div>
+      </div>
+      <input
+        type="file"
+        id="fileInput"
+        style="display: none"
+        accept=".json"
+        onchange="loadPath(this)"
+      />
+    </div>
+
+    <h1>VEX Path Planner - Pro Editor v30</h1>
 
     <div class="top-controls">
       <div class="switch-container">
@@ -346,6 +577,42 @@
     </div>
 
     <div class="main-layout">
+      <div class="left-sidebar">
+        <h3>Robot Ayarları</h3>
+
+        <div class="setting-group">
+          <label>Genişlik (inç):</label>
+          <input
+            type="number"
+            id="simWidthInput"
+            value="15"
+            onchange="drawScreen()"
+          />
+        </div>
+
+        <div class="setting-group">
+          <label>Yükseklik (inç):</label>
+          <input
+            type="number"
+            id="simHeightInput"
+            value="15"
+            onchange="drawScreen()"
+          />
+        </div>
+
+        <div class="switch-container">
+          <span>Görünürlük:</span>
+          <label class="switch">
+            <input type="checkbox" id="simToggle" onchange="drawScreen()" />
+            <span class="slider pink"></span>
+          </label>
+        </div>
+
+        <button class="play-btn" id="playBtn" onclick="toggleAnimation()">
+          ▶ Oynat
+        </button>
+      </div>
+
       <div class="canvas-wrapper">
         <canvas id="fieldCanvas" width="600" height="600"></canvas>
       </div>
@@ -449,15 +716,15 @@
                 Oto
               </button>
             </div>
-            <input
-              type="range"
-              id="angleSlider"
-              min="-180"
-              max="180"
-              value="0"
-              oninput="manualAngleChange(this.value)"
-            />
 
+            <div class="knob-wrapper">
+              <div class="knob-container" id="knobContainer">
+                <div class="knob-track"></div>
+                <div class="handle-rotator" id="handleRotator">
+                  <div class="knob-handle" id="knobHandle"></div>
+                </div>
+              </div>
+            </div>
             <div class="angle-buttons">
               <button onclick="rotateAngle(-90)">↺ -90°</button>
               <button onclick="rotateAngle(90)">↻ +90°</button>
@@ -531,7 +798,23 @@
       const coordXInput = document.getElementById("coordXInput");
       const coordYInput = document.getElementById("coordYInput");
       const angleInput = document.getElementById("angleInput");
-      const angleSlider = document.getElementById("angleSlider");
+
+      // Knob Değişkenleri
+      const knobContainer = document.getElementById("knobContainer");
+      const handleRotator = document.getElementById("handleRotator");
+      const knobHandle = document.getElementById("knobHandle");
+      let isKnobDragging = false;
+
+      // Robot Simülasyon Değişkenleri
+      const simWidthInput = document.getElementById("simWidthInput");
+      const simHeightInput = document.getElementById("simHeightInput");
+      const simToggle = document.getElementById("simToggle");
+      const playBtn = document.getElementById("playBtn");
+
+      let currentSimIndex = 0;
+      let isSimDragging = false;
+      let isPlaying = false;
+      let animationFrameId = null;
 
       const pointNameInput = document.getElementById("pointNameInput");
       const pointSpeedInput = document.getElementById("pointSpeedInput");
@@ -560,6 +843,163 @@
         drawScreen();
       };
 
+      // --- ANIMASYON MANTIĞI ---
+      function toggleAnimation() {
+        if (!simToggle.checked) {
+          alert("Lütfen önce Robot Görünümünü (Göster) açın.");
+          return;
+        }
+        if (processedPoints.length < 2) return;
+
+        isPlaying = !isPlaying;
+        if (isPlaying) {
+          playBtn.innerHTML = "⏹ Durdur";
+          playBtn.classList.add("playing");
+          // Eğer sonda ise başa al
+          let path = getVisualPathPoints();
+          if (currentSimIndex >= path.length - 1) {
+            currentSimIndex = 0;
+          }
+          animate();
+        } else {
+          playBtn.innerHTML = "▶ Oynat";
+          playBtn.classList.remove("playing");
+          cancelAnimationFrame(animationFrameId);
+        }
+      }
+
+      function animate() {
+        if (!isPlaying) return;
+
+        let path = getVisualPathPoints();
+        if (currentSimIndex < path.length - 1) {
+          let currentSpeed = 127;
+          if (path[Math.floor(currentSimIndex)].speed)
+            currentSpeed = parseInt(path[Math.floor(currentSimIndex)].speed);
+
+          let speedFactor = currentSpeed / 200;
+
+          currentSimIndex += speedFactor;
+          if (currentSimIndex >= path.length - 1) {
+            currentSimIndex = path.length - 1;
+            isPlaying = false;
+            playBtn.innerHTML = "▶ Oynat";
+            playBtn.classList.remove("playing");
+          }
+          drawScreen();
+          animationFrameId = requestAnimationFrame(animate);
+        }
+      }
+
+      // --- KNOB EVENTLERİ ---
+      knobHandle.addEventListener("mousedown", (e) => {
+        isKnobDragging = true;
+        e.preventDefault();
+        e.stopPropagation();
+      });
+
+      document.addEventListener("mouseup", () => {
+        isKnobDragging = false;
+        isSimDragging = false;
+      });
+
+      document.addEventListener("mousemove", (e) => {
+        // Knob işlemi
+        if (isKnobDragging) {
+          const rect = knobContainer.getBoundingClientRect();
+          const centerX = rect.left + rect.width / 2;
+          const centerY = rect.top + rect.height / 2;
+          const deltaX = e.clientX - centerX;
+          const deltaY = e.clientY - centerY;
+          let radians = Math.atan2(deltaY, deltaX);
+          let degrees = radians * (180 / Math.PI);
+          degrees = Math.round(degrees);
+          handleRotator.style.transform = `rotate(${degrees}deg)`;
+          manualAngleChange(degrees);
+        }
+      });
+      // -----------------------
+
+      // --- KLAVYE VE DOSYA ---
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Delete") {
+          if (selectedPointIndex !== -1) deleteSelectedPoint();
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+          e.preventDefault();
+          undoLastPoint();
+        }
+      });
+
+      function savePath() {
+        let listToSave = isPointMode || isDrawing ? rawPoints : processedPoints;
+        const data = {
+          version: "v30",
+          points: listToSave,
+          settings: {
+            isPointMode: isPointMode,
+            curveEnabled: curveToggle.checked,
+            pointCount: pointCountInput.value,
+            globalSpeed: globalSpeedInput.value,
+            robotSim: {
+              width: simWidthInput.value,
+              height: simHeightInput.value,
+              show: simToggle.checked,
+            },
+          },
+        };
+
+        const jsonStr = JSON.stringify(data, null, 2);
+        const blob = new Blob([jsonStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "vex_path.json";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+
+      function loadPath(input) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          try {
+            const data = JSON.parse(e.target.result);
+            if (data.points) {
+              rawPoints = data.points;
+              processedPoints = rawPoints.slice();
+            }
+            if (data.settings) {
+              document.getElementById("modeToggle").checked =
+                data.settings.isPointMode;
+              toggleMode();
+              curveToggle.checked = data.settings.curveEnabled;
+              updateSettings();
+              pointCountInput.value = data.settings.pointCount || 20;
+              globalSpeedInput.value = data.settings.globalSpeed || "127";
+
+              if (data.settings.robotSim) {
+                simWidthInput.value = data.settings.robotSim.width;
+                simHeightInput.value = data.settings.robotSim.height;
+                simToggle.checked = data.settings.robotSim.show;
+              }
+            }
+            selectedPointIndex = -1;
+            updateSelectionUI();
+            processPath(true);
+            alert("Proje başarıyla yüklendi!");
+          } catch (err) {
+            alert("Dosya okuma hatası!");
+            console.error(err);
+          }
+        };
+        reader.readAsText(file);
+        input.value = "";
+      }
+
       // --- MOD YÖNETİMİ ---
       function toggleMode() {
         const toggle = document.getElementById("modeToggle");
@@ -578,7 +1018,11 @@
           document.getElementById("undoBtn").style.display = "none";
           pointCountInput.disabled = false;
         }
-        clearCanvas();
+        clearCanvasKeepPoints();
+      }
+
+      function clearCanvasKeepPoints() {
+        drawScreen();
       }
 
       function updateSettings() {
@@ -594,14 +1038,28 @@
 
       function updateGlobalSpeed() {}
 
-      // --- MOUSE EVENTLERİ ---
+      // --- MOUSE EVENTLERİ (CANVAS) ---
       canvas.addEventListener("mousedown", (e) => {
         const rect = canvas.getBoundingClientRect();
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;
 
-        let targetList = isPointMode || isDrawing ? rawPoints : processedPoints;
+        if (simToggle.checked && processedPoints.length > 1) {
+          let visualPath = getVisualPathPoints();
+          let idx = Math.floor(currentSimIndex);
+          if (idx < visualPath.length) {
+            let p = visualPath[idx];
+            let dist = Math.hypot(p.x - mx, p.y - my);
+            if (dist < 40) {
+              isSimDragging = true;
+              // Oynatılıyorsa durdur
+              if (isPlaying) toggleAnimation();
+              return;
+            }
+          }
+        }
 
+        let targetList = isPointMode || isDrawing ? rawPoints : processedPoints;
         let clickedIndex = -1;
         for (let i = targetList.length - 1; i >= 0; i--) {
           const dist = Math.hypot(targetList[i].x - mx, targetList[i].y - my);
@@ -646,6 +1104,23 @@
         const rect = canvas.getBoundingClientRect();
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;
+
+        if (isSimDragging && simToggle.checked) {
+          let visualPath = getVisualPathPoints();
+          let minDist = Infinity;
+          let closestIndex = 0;
+
+          for (let i = 0; i < visualPath.length; i++) {
+            let d = Math.hypot(visualPath[i].x - mx, visualPath[i].y - my);
+            if (d < minDist) {
+              minDist = d;
+              closestIndex = i;
+            }
+          }
+          currentSimIndex = closestIndex;
+          drawScreen();
+          return;
+        }
 
         if (isDragging && selectedPointIndex !== -1) {
           let targetList =
@@ -697,28 +1172,36 @@
 
       function deleteSelectedPoint() {
         if (selectedPointIndex !== -1) {
-          if (selectedPointIndex === 0) {
-            alert("Başlangıç noktası silinemez!");
+          // BAŞLANGIÇ NOKTASINI SİLME KONTROLÜ KALDIRILDI
+          // ARTIK HER NOKTA SİLİNEBİLİR
+
+          let list = isPointMode ? rawPoints : processedPoints;
+
+          list.splice(selectedPointIndex, 1);
+
+          // Eğer hiç nokta kalmadıysa sıfırla
+          if (list.length === 0) {
+            clearCanvas();
             return;
           }
 
-          if (isPointMode) {
-            rawPoints.splice(selectedPointIndex, 1);
-          } else {
-            processedPoints.splice(selectedPointIndex, 1);
+          // Seçili index listeden taştıysa
+          if (selectedPointIndex >= list.length) {
+            selectedPointIndex = list.length - 1;
           }
-          selectedPointIndex = -1;
+
           updateSelectionUI();
           processPath(true);
         }
       }
 
       function undoLastPoint() {
-        if (isPointMode && rawPoints.length > 0) {
-          rawPoints.pop();
+        let targetList = isPointMode ? rawPoints : processedPoints;
+        if (targetList.length > 1) {
+          targetList.pop();
           selectedPointIndex = -1;
           updateSelectionUI();
-          processPath();
+          processPath(true);
         }
       }
 
@@ -741,29 +1224,18 @@
 
         targetList.forEach((p) => {
           if (axis === "X") {
-            // X (Dikey) Eksen Aynalama -> YATAY Flip
             let distFromCenter = p.x - cx;
             p.x = cx - distFromCenter;
             if (p.customHeading !== null) {
-              // Açı aynalama: Y ekseni etrafında (Sağ<->Sol)
-              // Sağ(0) -> Sol(180).
-              // Aşağı(90) -> Aşağı(90).
-              // Yukarı(-90) -> Yukarı(-90).
-              // Formül: 180 - Angle.
               let a = p.customHeading;
               p.customHeading = 180 - a;
               while (p.customHeading > 180) p.customHeading -= 360;
               while (p.customHeading < -180) p.customHeading += 360;
             }
           } else if (axis === "Y") {
-            // Y (Yatay) Eksen Aynalama -> DİKEY Flip
             let distFromCenter = p.y - cy;
             p.y = cy - distFromCenter;
             if (p.customHeading !== null) {
-              // Açı aynalama: X ekseni etrafında (Yukarı<->Aşağı)
-              // Sağ(0) -> Sağ(0).
-              // Aşağı(90) -> Yukarı(-90).
-              // Formül: -Angle.
               p.customHeading = -p.customHeading;
             }
           }
@@ -774,7 +1246,7 @@
         if (selectedPointIndex !== -1) updateSelectionUI();
       }
 
-      // --- UI GÜNCELLEME ---
+      // --- UI GÜNCELLEME (AKILLI SLIDER) ---
       function updateSelectionUI() {
         if (selectedPointIndex !== -1) {
           noSelectionMsg.style.display = "none";
@@ -796,8 +1268,9 @@
           if (selectedPointIndex === 0) {
             pointNameInput.value = "Başlangıç Noktası";
             pointNameInput.disabled = true;
-            deleteBtn.disabled = true;
-            deleteBtn.style.opacity = "0.5";
+            // ARTIK SİLME BUTONU AKTİF
+            deleteBtn.disabled = false;
+            deleteBtn.style.opacity = "1";
             movementSettings.style.display = "none";
           } else {
             pointNameInput.value = p.name || "";
@@ -809,14 +1282,30 @@
             pointDirInput.value = p.dir || "fwd";
           }
 
+          // --- KNOB MANTIĞI ---
+          let displayAngle = 0;
           if (p.customHeading !== null) {
-            angleInput.value = p.customHeading;
-            angleSlider.value = p.customHeading;
+            displayAngle = p.customHeading;
+            angleInput.value = displayAngle;
           } else {
             angleInput.value = "";
             angleInput.placeholder = "Oto";
-            angleSlider.value = 0;
+            if (list.length > 1) {
+              if (selectedPointIndex < list.length - 1) {
+                displayAngle = calculateRawHeading(
+                  p,
+                  list[selectedPointIndex + 1]
+                );
+              } else {
+                displayAngle = calculateRawHeading(
+                  list[selectedPointIndex - 1],
+                  p
+                );
+              }
+            }
           }
+          handleRotator.style.transform = `rotate(${displayAngle}deg)`;
+          // --------------------------------
         } else {
           noSelectionMsg.style.display = "block";
           selectionControls.style.display = "none";
@@ -856,7 +1345,6 @@
         let newYInches = parseFloat(coordYInput.value);
         if (isNaN(newXInches) || isNaN(newYInches)) return;
 
-        // İnç -> Piksel
         let pX = newYInches * PIXELS_PER_INCH + CANVAS_SIZE / 2;
         let pY = newXInches * PIXELS_PER_INCH + CANVAS_SIZE / 2;
 
@@ -869,9 +1357,14 @@
       function manualAngleChange(val) {
         if (selectedPointIndex !== -1) {
           let list = isPointMode ? rawPoints : processedPoints;
-          list[selectedPointIndex].customHeading = parseFloat(val);
+          let angleVal = parseFloat(val);
+          list[selectedPointIndex].customHeading = angleVal;
           angleInput.value = val;
-          angleSlider.value = val;
+
+          if (!isNaN(angleVal)) {
+            handleRotator.style.transform = `rotate(${angleVal}deg)`;
+          }
+
           drawScreen();
           generateFormattedOutput(list);
         }
@@ -950,13 +1443,16 @@
               let p1 = rawPoints[index];
               let p2 = rawPoints[index + 1];
 
+              let segSpeed = p2.speed || defaultSpeed;
+              let segDir = p2.dir || "fwd";
+
               newPoints.push({
                 x: p1.x + (p2.x - p1.x) * fraction,
                 y: p1.y + (p2.y - p1.y) * fraction,
                 customHeading: null,
                 name: "",
-                speed: defaultSpeed,
-                dir: "fwd",
+                speed: segSpeed,
+                dir: segDir,
               });
             }
             let lastP = rawPoints[rawPoints.length - 1];
@@ -967,6 +1463,7 @@
               name: "",
               speed: defaultSpeed,
               dir: "fwd",
+              dir: "fwd",
             });
 
             processedPoints = newPoints;
@@ -976,10 +1473,13 @@
         generateFormattedOutput(processedPoints);
       }
 
+      // --- ADAPTIVE SAMPLING (Eğri Çizgi) ---
       function getHermiteSplinePoints(points, segments) {
         if (points.length < 2) return points;
         let splinePoints = [];
         let tangents = [];
+
+        // Teğetleri hesapla
         for (let i = 0; i < points.length; i++) {
           let tX, tY;
           let magnitude = 0;
@@ -990,12 +1490,6 @@
           magnitude = dist * 0.5;
 
           if (points[i].customHeading !== null) {
-            // AÇI REFERANSI: Sağ (0).
-            // Canvas Açı Referansı: Sağ (0), Aşağı (90)
-            // Bu tam eşleşiyor!
-            // 0 -> cos(0)=1, sin(0)=0 (Sağ).
-            // 90 -> cos(90)=0, sin(90)=1 (Aşağı).
-
             let rad = (points[i].customHeading * Math.PI) / 180;
             tX = Math.cos(rad) * magnitude;
             tY = Math.sin(rad) * magnitude;
@@ -1006,14 +1500,24 @@
           tangents.push({ x: tX, y: tY });
         }
 
+        // Noktalar arası interpolasyon
         for (let i = 0; i < points.length - 1; i++) {
           let p0 = points[i];
           let p1 = points[i + 1];
           let m0 = tangents[i];
           let m1 = tangents[i + 1];
 
-          for (let t = 0; t <= segments; t++) {
-            let s = t / segments;
+          let segSpeed = p1.speed || "127";
+          let segDir = p1.dir || "fwd";
+
+          // ADAPTIVE: Mesafeyi ölç
+          let distPixels = Math.hypot(p1.x - p0.x, p1.y - p0.y);
+          // Her 2 piksel için 1 nokta oluştur (Yoğunluk)
+          let steps = Math.max(5, Math.floor(distPixels / 2));
+
+          for (let k = 0; k <= steps; k++) {
+            let t = k / steps;
+            let s = t;
             let s2 = s * s;
             let s3 = s2 * s;
             let h1 = 2 * s3 - 3 * s2 + 1;
@@ -1022,10 +1526,58 @@
             let h4 = s3 - s2;
             let x = h1 * p0.x + h2 * m0.x + h3 * p1.x + h4 * m1.x;
             let y = h1 * p0.y + h2 * m0.y + h3 * p1.y + h4 * m1.y;
-            splinePoints.push({ x: x, y: y });
+
+            splinePoints.push({
+              x: x,
+              y: y,
+              speed: segSpeed,
+              dir: segDir,
+            });
           }
         }
         return splinePoints;
+      }
+
+      // --- ADAPTIVE SAMPLING (Düz Çizgi) ---
+      function getVisualPathPoints() {
+        if (processedPoints.length < 2) return [];
+
+        if (curveToggle.checked) {
+          // Spline fonksiyonu zaten adaptive hale getirildi
+          return getHermiteSplinePoints(processedPoints, 0);
+        } else {
+          let pts = [];
+          for (let i = 0; i < processedPoints.length - 1; i++) {
+            let p1 = processedPoints[i];
+            let p2 = processedPoints[i + 1];
+
+            let segSpeed = p2.speed || "127";
+            let segDir = p2.dir || "fwd";
+
+            // ADAPTIVE: Mesafeyi ölç
+            let distPixels = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+            // Her 2 piksel için 1 nokta
+            let steps = Math.max(2, Math.floor(distPixels / 2));
+
+            for (let k = 0; k < steps; k++) {
+              let t = k / steps;
+              pts.push({
+                x: p1.x + (p2.x - p1.x) * t,
+                y: p1.y + (p2.y - p1.y) * t,
+                speed: segSpeed,
+                dir: segDir,
+              });
+            }
+          }
+          let last = processedPoints[processedPoints.length - 1];
+          pts.push({
+            x: last.x,
+            y: last.y,
+            speed: last.speed,
+            dir: last.dir,
+          });
+          return pts;
+        }
       }
 
       function drawScreen() {
@@ -1080,7 +1632,62 @@
               );
             }
           }
+
+          if (simToggle.checked && processedPoints.length > 1) {
+            drawRobotSimulation(visualPoints, useCurveColor);
+          }
         }
+      }
+
+      function drawRobotSimulation(visualPoints, isCurved) {
+        let simPath = getVisualPathPoints();
+        if (simPath.length < 2) return;
+
+        let idx = Math.floor(currentSimIndex);
+        if (idx >= simPath.length) idx = simPath.length - 1;
+
+        let p = simPath[idx];
+
+        let angle = 0;
+        if (idx < simPath.length - 1) {
+          angle = calculateRawHeading(p, simPath[idx + 1]);
+        } else if (idx > 0) {
+          angle = calculateRawHeading(simPath[idx - 1], p);
+        }
+
+        if (p.dir === "rev") {
+          angle += 180;
+        }
+
+        let w = parseFloat(simWidthInput.value) * PIXELS_PER_INCH;
+        let h = parseFloat(simHeightInput.value) * PIXELS_PER_INCH;
+
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate((angle * Math.PI) / 180);
+
+        ctx.fillStyle = "rgba(214, 51, 132, 0.4)";
+        ctx.strokeStyle = "#d63384";
+        ctx.lineWidth = 2;
+
+        ctx.fillRect(-w / 2, -h / 2, w, h);
+        ctx.strokeRect(-w / 2, -h / 2, w, h);
+
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(w / 2, 0);
+        ctx.strokeStyle = "white";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.lineTo(w / 2, 0);
+        ctx.lineTo(w / 2 - 5, -5);
+        ctx.lineTo(w / 2 - 5, 5);
+        ctx.fillStyle = "white";
+        ctx.fill();
+
+        ctx.restore();
       }
 
       function drawFancyPoint(p, isSelected, headingDeg, isStart) {
@@ -1108,8 +1715,6 @@
           ctx.stroke();
         }
 
-        // GÖRSELLEŞTİRME: Sağ=0, Aşağı=90.
-        // Canvas ile birebir uyumlu.
         let rad = (headingDeg * Math.PI) / 180;
 
         ctx.beginPath();
@@ -1181,33 +1786,19 @@
         ctx.stroke();
       }
 
-      // --- AÇI HESABI ---
       function calculateRawHeading(p1, p2) {
-        let dx_px = p2.x - p1.x; // Yatay Fark (Sağ+)
-        let dy_px = p2.y - p1.y; // Dikey Fark (Aşağı+)
-
-        // Hedefimiz: Sağ=0, Aşağı=90.
-        // atan2(y, x) -> Sağ=0, Aşağı=90.
-        // CanvasY=Aşağı, CanvasX=Sağ.
-        // Bu yüzden atan2(dy_px, dx_px) tam olarak istediğimizi verir.
-
+        let dx_px = p2.x - p1.x;
+        let dy_px = p2.y - p1.y;
         let rad = Math.atan2(dy_px, dx_px);
         let deg = (rad * 180) / Math.PI;
         return deg;
       }
 
-      // --- KOORDİNAT HESABI (GÜNCELLENDİ: X=Dikey, Y=Yatay) ---
       function getCoordinatesInches(point) {
-        let pixelX = point.x - CANVAS_SIZE / 2; // Yatay Piksel
-        let pixelY = point.y - CANVAS_SIZE / 2; // Dikey Piksel
-
-        // İSTENEN:
-        // Dikey = X (Aşağı doğru artar -> pixelY)
-        // Yatay = Y (Sağa doğru artar -> pixelX)
-
-        let inchesY = pixelX / PIXELS_PER_INCH; // Yatay -> Y
-        let inchesX = pixelY / PIXELS_PER_INCH; // Dikey -> X
-
+        let pixelX = point.x - CANVAS_SIZE / 2;
+        let pixelY = point.y - CANVAS_SIZE / 2;
+        let inchesY = pixelX / PIXELS_PER_INCH;
+        let inchesX = pixelY / PIXELS_PER_INCH;
         return { x: inchesX, y: inchesY };
       }
 
@@ -1245,29 +1836,33 @@
           let aF = Math.round(angleFinal * 100) / 100;
 
           if (i === 0) {
-            // X=Dikey, Y=Yatay
-            outputText += `chassis.odom_xyt_set(${xF}_in, ${yF}_in, ${aF}_deg);\n\n`;
-            outputText += "chassis.pid_odom_set({\n";
+            outputText += `chassis.odom_xyt_set(${xF}_in, ${yF}_in, ${aF}_deg);`;
+            if (currentP.name && currentP.name.length > 0) {
+              outputText += ` // ${currentP.name}`;
+            }
+            outputText += "\n\nchassis.pid_odom_set({\n";
           } else {
             let ptSpeed = currentP.speed || globalSpeedInput.value;
             let ptDir = currentP.dir || "fwd";
 
             let lineData = `{${xF}_in, ${yF}_in, ${aF}_deg, ${ptDir}, ${ptSpeed}}`;
 
-            if (currentP.name && currentP.name.length > 0) {
-              lineData += `, // ${currentP.name}`;
+            // DÜZELTME: Virgül, veri bloğunun hemen yanına ekleniyor (yorumdan önce)
+            if (i > 1) outputText += "\n";
+            outputText += "      " + lineData;
+
+            if (i < points.length - 1) {
+              outputText += ",";
             }
 
-            if (i === 1) {
-              outputText += "      " + lineData;
-            } else {
-              outputText += ",\n      " + lineData;
+            if (currentP.name && currentP.name.length > 0) {
+              outputText += ` // ${currentP.name}`;
             }
           }
         }
 
         if (points.length === 1) {
-          outputText += "      // Hareket için daha fazla nokta ekleyin...\n";
+          outputText += "      // Hareket için daha fazla nokta ekleyin...\n";
         }
 
         outputText += "\n}, true);";
