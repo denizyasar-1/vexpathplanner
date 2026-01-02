@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VEX Path Planner - Pro Editor v39 (Expanded Snap Zones)</title>
+    <title>VEX Path Planner - Pro Editor v40 (Mechanism Config)</title>
     <link rel="icon" href="ibb_logo_favicon.jpg" type="image/jpeg" />
     <style>
       /* GENEL SAYFA DÜZENİ */
@@ -102,19 +102,26 @@
         padding: 10px;
         display: flex;
         flex-direction: column;
-        gap: 15px;
+        gap: 10px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
         box-sizing: border-box;
         flex-shrink: 0;
         overflow-y: auto;
       }
       .left-sidebar h3 {
-        margin: 0;
-        font-size: 1rem;
+        margin: 5px 0;
+        font-size: 0.95rem;
         color: #d63384;
         border-bottom: 1px solid #444;
         padding-bottom: 5px;
         text-align: center;
+      }
+      .left-sidebar h4 {
+        margin: 5px 0;
+        font-size: 0.85rem;
+        color: #ff9f43;
+        border-bottom: 1px solid #444;
+        padding-bottom: 2px;
       }
       .left-sidebar input[type="number"] {
         width: 100%;
@@ -125,6 +132,15 @@
         border-radius: 4px;
         text-align: center;
         box-sizing: border-box;
+      }
+      .left-sidebar select {
+        width: 100%;
+        background: #444;
+        border: 1px solid #555;
+        color: #fff;
+        padding: 4px;
+        border-radius: 4px;
+        margin-top: 2px;
       }
 
       /* PLAY BUTONU */
@@ -528,7 +544,7 @@
       />
     </div>
 
-    <h1>VEX Path Planner - Pro Editor v39</h1>
+    <h1>VEX Path Planner - Pro Editor v40</h1>
 
     <div class="top-controls">
       <div class="switch-container">
@@ -617,6 +633,40 @@
             <input type="checkbox" id="simToggle" onchange="drawScreen()" />
             <span class="slider pink"></span>
           </label>
+        </div>
+
+        <h3>Mekanizma Yönleri</h3>
+
+        <div class="setting-group">
+          <label>Intake:</label>
+          <select id="intakeConfig" onchange="updateSnapZones()">
+            <option value="front">Önde</option>
+            <option value="back">Arkada</option>
+          </select>
+        </div>
+
+        <div class="setting-group">
+          <label>Long Shooter:</label>
+          <select id="longShooterConfig" onchange="updateSnapZones()">
+            <option value="front">Önde</option>
+            <option value="back">Arkada</option>
+          </select>
+        </div>
+
+        <div class="setting-group">
+          <label>Mid Shooter:</label>
+          <select id="midShooterConfig" onchange="updateSnapZones()">
+            <option value="front">Önde</option>
+            <option value="back">Arkada</option>
+          </select>
+        </div>
+
+        <div class="setting-group">
+          <label>Low Shooter:</label>
+          <select id="lowShooterConfig" onchange="updateSnapZones()">
+            <option value="front">Önde</option>
+            <option value="back">Arkada</option>
+          </select>
         </div>
 
         <button class="play-btn" id="playBtn" onclick="toggleAnimation()">
@@ -843,6 +893,12 @@
       const movementSettings = document.getElementById("movementSettings");
       const deleteBtn = document.getElementById("deleteBtn");
 
+      // Mekanizma Ayarları Selectleri
+      const intakeConfig = document.getElementById("intakeConfig");
+      const longShooterConfig = document.getElementById("longShooterConfig");
+      const midShooterConfig = document.getElementById("midShooterConfig");
+      const lowShooterConfig = document.getElementById("lowShooterConfig");
+
       const bgImage = new Image();
       bgImage.src = "field.png";
 
@@ -852,25 +908,28 @@
       const OFFSET_X = 0;
       const OFFSET_Y = 0;
 
-      // HİZALAMA ALANLARI (SNAP ZONES - YENİ & OTO AÇILI)
-      const SNAP_ZONES = [
-        // Eski Köşe Noktaları (30)
-        { x: 48, y: 30, w: 10, h: 10, angle: 180 },
-        { x: -48, y: 30, w: 10, h: 10, angle: 180 },
-        { x: 48, y: -30, w: 10, h: 10, angle: 0 },
-        { x: -48, y: -30, w: 10, h: 10, angle: 0 },
+      // HİZALAMA ALANLARI TANIMLARI
+      // type: Hangi mekanizmaya ait olduğunu belirtir
+      const SNAP_DEFINITIONS = [
+        // Intake (Köşe 64'lüler)
+        { x: 48, y: 64, w: 10, h: 10, angle: 0, type: "intake" },
+        { x: -48, y: 64, w: 10, h: 10, angle: 0, type: "intake" },
+        { x: -48, y: -64, w: 10, h: 10, angle: 180, type: "intake" },
+        { x: 48, y: -64, w: 10, h: 10, angle: 180, type: "intake" },
 
-        // İç Noktalar (Ladder vs.)
-        { x: 14, y: 14, w: 10, h: 10, angle: -135 },
-        { x: -14, y: 14, w: 10, h: 10, angle: 135 },
-        { x: -14, y: -14, w: 10, h: 10, angle: 45 },
-        { x: 14, y: -14, w: 10, h: 10, angle: -45 },
+        // Long Shooter (Eski Köşeler 30'lular)
+        { x: 48, y: 30, w: 10, h: 10, angle: 180, type: "long" },
+        { x: -48, y: 30, w: 10, h: 10, angle: 180, type: "long" },
+        { x: 48, y: -30, w: 10, h: 10, angle: 0, type: "long" },
+        { x: -48, y: -30, w: 10, h: 10, angle: 0, type: "long" },
 
-        // YENİ EKLENEN NOKTALAR (64)
-        { x: 48, y: 64, w: 10, h: 10, angle: 0 },
-        { x: -48, y: 64, w: 10, h: 10, angle: 0 },
-        { x: -48, y: -64, w: 10, h: 10, angle: 180 },
-        { x: 48, y: -64, w: 10, h: 10, angle: 180 },
+        // Mid Shooter (14, 14 Çaprazları)
+        { x: 14, y: 14, w: 10, h: 10, angle: -135, type: "mid" },
+        { x: -14, y: -14, w: 10, h: 10, angle: 45, type: "mid" },
+
+        // Low Shooter (14, -14 Çaprazları)
+        { x: -14, y: 14, w: 10, h: 10, angle: 135, type: "low" },
+        { x: 14, y: -14, w: 10, h: 10, angle: -45, type: "low" },
       ];
 
       let rawPoints = [];
@@ -885,37 +944,74 @@
         drawScreen();
       };
 
+      // --- MEKANİZMA GÜNCELLEME ---
+      function updateSnapZones() {
+        // Ayar değiştiğinde, eğer bir nokta bu zone'lardan birindeyse açısını güncelle
+        // Tüm noktaları kontrol etmeye gerek yok, sadece aktif seçim varsa ya da sürükleme sırasında
+        // Ama kullanıcı menüden değiştirdiğinde anlık etki istiyor olabilir.
+        // O yüzden tüm rawPoints üzerinde gezip, "acaba bir zone'da mı?" diye bakıp güncellemek mantıklı.
+
+        let changed = false;
+        rawPoints.forEach((p) => {
+          // Noktayı inch'e çevirip kontrol etmemiz lazım ama getSnappedPosition piksel ile çalışıyor.
+          // Tersten gidelim: getSnappedPosition zaten piksel ile çalışıyor, p.x ve p.y piksel.
+
+          let snapped = getSnappedPosition(p.x, p.y);
+          if (snapped.snapped && snapped.hasAngle) {
+            // Eğer nokta zaten bir zone içindeyse ve açısı varsa güncelle
+            // Kullanıcı manuel olarak açıyı değiştirdiyse bozmamak lazım ama
+            // "Snap" mantığı genelde üzerine yazmayı gerektirir.
+            // Şimdilik direkt güncelleyelim.
+            if (p.customHeading !== snapped.angle) {
+              p.customHeading = snapped.angle;
+              changed = true;
+            }
+          }
+        });
+
+        if (changed) {
+          drawScreen();
+          updateSelectionUI();
+          generateFormattedOutput(isPointMode ? rawPoints : processedPoints);
+        }
+      }
+
       // --- SNAP / HİZALAMA FONKSİYONLARI ---
 
       // İnç -> Piksel dönüşümü (Merkeze göre)
       function inchToPixel(inchX, inchY) {
-        // X = Dikey, Y = Yatay. Canvas (0,0) sol üst.
         let px = inchY * PIXELS_PER_INCH + CANVAS_SIZE / 2; // Yatay
         let py = inchX * PIXELS_PER_INCH + CANVAS_SIZE / 2; // Dikey
         return { x: px, y: py };
       }
 
       function drawSnapZones() {
-        // GÖRÜNMEZ OLSUN DENDİĞİ İÇİN ÇİZDİRMİYORUZ
-        // Kod burada kalsın, gerekirse açılır.
-        /*
-          ctx.save();
-          SNAP_ZONES.forEach(zone => {
-              let center = inchToPixel(zone.x, zone.y);
-              let wPx = zone.w * PIXELS_PER_INCH;
-              let hPx = zone.h * PIXELS_PER_INCH;
-              let drawX = center.x - wPx / 2;
-              let drawY = center.y - hPx / 2;
-              
-              ctx.fillStyle = "rgba(0, 123, 255, 0.2)";
-              ctx.strokeStyle = "rgba(0, 123, 255, 0.6)";
-              ctx.lineWidth = 1;
-              ctx.setLineDash([4, 2]); 
-              ctx.fillRect(drawX, drawY, wPx, hPx);
-              ctx.strokeRect(drawX, drawY, wPx, hPx);
-          });
-          ctx.restore();
-          */
+        // Görünmez kalsın
+      }
+
+      // Dinamik açı hesaplama
+      function getAdjustedAngle(baseAngle, type) {
+        let isBack = false;
+        if (type === "intake" && intakeConfig.value === "back") isBack = true;
+        if (type === "long" && longShooterConfig.value === "back")
+          isBack = true;
+        if (type === "mid" && midShooterConfig.value === "back") isBack = true;
+        if (type === "low" && lowShooterConfig.value === "back") isBack = true;
+
+        if (isBack) {
+          return (baseAngle + 180) % 360;
+          // Vex açısı -180 ile 180 arası olabilir veya 0-360.
+          // Kodun kalanı -180/180 kullanıyor. Düzeltelim:
+          // Basit toplama yapıp, rotateAngle fonksiyonundaki gibi mod alacağız.
+        }
+        return baseAngle;
+      }
+
+      // Açıyı -180 ile 180 arasına sıkıştırma
+      function normalizeAngle(angle) {
+        while (angle > 180) angle -= 360;
+        while (angle <= -180) angle += 360;
+        return angle;
       }
 
       // Snap kontrolü ve Açı bilgisi dönüşü
@@ -928,7 +1024,7 @@
           hasAngle: false,
         };
 
-        for (let zone of SNAP_ZONES) {
+        for (let zone of SNAP_DEFINITIONS) {
           let center = inchToPixel(zone.x, zone.y);
           let wPx = zone.w * PIXELS_PER_INCH;
           let hPx = zone.h * PIXELS_PER_INCH;
@@ -942,9 +1038,11 @@
             result.x = center.x;
             result.y = center.y;
             result.snapped = true;
-            // Eğer alanın tanımlı bir açısı varsa onu da dön
+
             if (zone.angle !== undefined) {
-              result.angle = zone.angle;
+              // Açıyı konfigürasyona göre ayarla
+              let finalAngle = getAdjustedAngle(zone.angle, zone.type);
+              result.angle = normalizeAngle(finalAngle);
               result.hasAngle = true;
             }
             break;
@@ -1135,7 +1233,7 @@
       function savePath() {
         let listToSave = isPointMode || isDrawing ? rawPoints : processedPoints;
         const data = {
-          version: "v39",
+          version: "v40",
           points: listToSave,
           settings: {
             isPointMode: isPointMode,
@@ -1148,6 +1246,12 @@
               show: simToggle.checked,
             },
             relativeOrigin: isRelativeOrigin,
+            mechanisms: {
+              intake: intakeConfig.value,
+              long: longShooterConfig.value,
+              mid: midShooterConfig.value,
+              low: lowShooterConfig.value,
+            },
           },
         };
 
@@ -1193,6 +1297,16 @@
               if (data.settings.relativeOrigin !== undefined) {
                 originToggle.checked = data.settings.relativeOrigin;
                 toggleOrigin();
+              }
+              // Mekanizma ayarlarını yükle
+              if (data.settings.mechanisms) {
+                intakeConfig.value = data.settings.mechanisms.intake || "front";
+                longShooterConfig.value =
+                  data.settings.mechanisms.long || "front";
+                midShooterConfig.value =
+                  data.settings.mechanisms.mid || "front";
+                lowShooterConfig.value =
+                  data.settings.mechanisms.low || "front";
               }
             }
             selectedPointIndex = -1;
@@ -1309,7 +1423,7 @@
           return;
         }
 
-        // 3. YENİ NOKTA EKLEME (SNAP ÖZELLİĞİ EKLENDİ)
+        // 3. YENİ NOKTA EKLEME (SNAP + OTO AÇI)
         let snapped = getSnappedPosition(mx, my);
 
         if (isPointMode) {
@@ -1385,7 +1499,6 @@
             drawScreen();
             if (!isDrawing) processPath(true);
 
-            // Eğer açı değiştiyse UI'ı güncelle (Knob dönsün diye)
             if (snapped.hasAngle) {
               updateSelectionUI();
             }
