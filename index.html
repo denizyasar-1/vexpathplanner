@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VEX Path Planner - Pro Editor v36 (Custom Snap Zones)</title>
+    <title>VEX Path Planner - Pro Editor v39 (Expanded Snap Zones)</title>
     <link rel="icon" href="ibb_logo_favicon.jpg" type="image/jpeg" />
     <style>
       /* GENEL SAYFA DÜZENİ */
@@ -528,7 +528,7 @@
       />
     </div>
 
-    <h1>VEX Path Planner - Pro Editor v36</h1>
+    <h1>VEX Path Planner - Pro Editor v39</h1>
 
     <div class="top-controls">
       <div class="switch-container">
@@ -852,14 +852,25 @@
       const OFFSET_X = 0;
       const OFFSET_Y = 0;
 
-      // HİZALAMA ALANLARI (SNAP ZONES - YENİ)
-      // Koordinat Sistemi: X = Dikey (Aşağı +), Y = Yatay (Sağ +) [Inç olarak]
-      // (0,0) Sahanın merkezi.
+      // HİZALAMA ALANLARI (SNAP ZONES - YENİ & OTO AÇILI)
       const SNAP_ZONES = [
-        { x: 48, y: 30, w: 10, h: 10 },
-        { x: -48, y: 30, w: 10, h: 10 },
-        { x: 48, y: -30, w: 10, h: 10 },
-        { x: -48, y: -30, w: 10, h: 10 },
+        // Eski Köşe Noktaları (30)
+        { x: 48, y: 30, w: 10, h: 10, angle: 180 },
+        { x: -48, y: 30, w: 10, h: 10, angle: 180 },
+        { x: 48, y: -30, w: 10, h: 10, angle: 0 },
+        { x: -48, y: -30, w: 10, h: 10, angle: 0 },
+
+        // İç Noktalar (Ladder vs.)
+        { x: 14, y: 14, w: 10, h: 10, angle: -135 },
+        { x: -14, y: 14, w: 10, h: 10, angle: 135 },
+        { x: -14, y: -14, w: 10, h: 10, angle: 45 },
+        { x: 14, y: -14, w: 10, h: 10, angle: -45 },
+
+        // YENİ EKLENEN NOKTALAR (64)
+        { x: 48, y: 64, w: 10, h: 10, angle: 0 },
+        { x: -48, y: 64, w: 10, h: 10, angle: 0 },
+        { x: -48, y: -64, w: 10, h: 10, angle: 180 },
+        { x: 48, y: -64, w: 10, h: 10, angle: 180 },
       ];
 
       let rawPoints = [];
@@ -885,32 +896,37 @@
       }
 
       function drawSnapZones() {
-        ctx.save();
-        SNAP_ZONES.forEach((zone) => {
-          // Alanın merkezini piksele çevir
-          let center = inchToPixel(zone.x, zone.y);
-          let wPx = zone.w * PIXELS_PER_INCH;
-          let hPx = zone.h * PIXELS_PER_INCH;
-
-          // Sol üst köşeyi bul (çizim için)
-          let drawX = center.x - wPx / 2;
-          let drawY = center.y - hPx / 2;
-
-          ctx.fillStyle = "rgba(0, 123, 255, 0.2)"; // Saydam Mavi
-          ctx.strokeStyle = "rgba(0, 123, 255, 0.6)";
-          ctx.lineWidth = 1;
-          ctx.setLineDash([4, 2]); // Kesikli çizgi
-
-          ctx.fillRect(drawX, drawY, wPx, hPx);
-          ctx.strokeRect(drawX, drawY, wPx, hPx);
-        });
-        ctx.restore();
+        // GÖRÜNMEZ OLSUN DENDİĞİ İÇİN ÇİZDİRMİYORUZ
+        // Kod burada kalsın, gerekirse açılır.
+        /*
+          ctx.save();
+          SNAP_ZONES.forEach(zone => {
+              let center = inchToPixel(zone.x, zone.y);
+              let wPx = zone.w * PIXELS_PER_INCH;
+              let hPx = zone.h * PIXELS_PER_INCH;
+              let drawX = center.x - wPx / 2;
+              let drawY = center.y - hPx / 2;
+              
+              ctx.fillStyle = "rgba(0, 123, 255, 0.2)";
+              ctx.strokeStyle = "rgba(0, 123, 255, 0.6)";
+              ctx.lineWidth = 1;
+              ctx.setLineDash([4, 2]); 
+              ctx.fillRect(drawX, drawY, wPx, hPx);
+              ctx.strokeRect(drawX, drawY, wPx, hPx);
+          });
+          ctx.restore();
+          */
       }
 
-      // Verilen mouse koordinatları (piksel) bir snap zone içinde mi?
-      // Eğer öyleyse zone merkezini döndür, değilse mouse'u döndür.
+      // Snap kontrolü ve Açı bilgisi dönüşü
       function getSnappedPosition(mx, my) {
-        let snappedPos = { x: mx, y: my, snapped: false };
+        let result = {
+          x: mx,
+          y: my,
+          snapped: false,
+          angle: null,
+          hasAngle: false,
+        };
 
         for (let zone of SNAP_ZONES) {
           let center = inchToPixel(zone.x, zone.y);
@@ -923,13 +939,18 @@
           let bottom = center.y + hPx / 2;
 
           if (mx >= left && mx <= right && my >= top && my <= bottom) {
-            snappedPos.x = center.x;
-            snappedPos.y = center.y;
-            snappedPos.snapped = true;
+            result.x = center.x;
+            result.y = center.y;
+            result.snapped = true;
+            // Eğer alanın tanımlı bir açısı varsa onu da dön
+            if (zone.angle !== undefined) {
+              result.angle = zone.angle;
+              result.hasAngle = true;
+            }
             break;
           }
         }
-        return snappedPos;
+        return result;
       }
 
       // --- UNDO / REDO SİSTEMİ ---
@@ -1114,7 +1135,7 @@
       function savePath() {
         let listToSave = isPointMode || isDrawing ? rawPoints : processedPoints;
         const data = {
-          version: "v36",
+          version: "v39",
           points: listToSave,
           settings: {
             isPointMode: isPointMode,
@@ -1294,6 +1315,12 @@
         if (isPointMode) {
           saveState();
           addRawPoint(snapped.x, snapped.y);
+
+          // EĞER OTO AÇI VARSA, SON NOKTAYA UYGULA
+          if (snapped.hasAngle) {
+            rawPoints[rawPoints.length - 1].customHeading = snapped.angle;
+          }
+
           processPath();
           selectedPointIndex = rawPoints.length - 1;
           isDragging = true;
@@ -1305,6 +1332,12 @@
           processedPoints = [];
           selectedPointIndex = -1;
           addRawPoint(snapped.x, snapped.y);
+
+          // Free draw modunda da olsa ilk nokta için uygula
+          if (snapped.hasAngle) {
+            rawPoints[rawPoints.length - 1].customHeading = snapped.angle;
+          }
+
           drawScreen();
         }
       });
@@ -1340,12 +1373,22 @@
             targetList[selectedPointIndex].x = snapped.x;
             targetList[selectedPointIndex].y = snapped.y;
 
+            // Sürüklerken de alana girerse açıyı otomatik yap
+            if (snapped.hasAngle) {
+              targetList[selectedPointIndex].customHeading = snapped.angle;
+            }
+
             const coords = getCoordinatesInches(targetList[selectedPointIndex]);
             coordXInput.value = coords.x.toFixed(2);
             coordYInput.value = coords.y.toFixed(2);
 
             drawScreen();
             if (!isDrawing) processPath(true);
+
+            // Eğer açı değiştiyse UI'ı güncelle (Knob dönsün diye)
+            if (snapped.hasAngle) {
+              updateSelectionUI();
+            }
           }
           return;
         }
