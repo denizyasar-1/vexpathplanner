@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VEX Path Planner - Pro Editor v40 (Mechanism Config)</title>
+    <title>VEX Path Planner - Pro Editor v41 (UI Update)</title>
     <link rel="icon" href="ibb_logo_favicon.jpg" type="image/jpeg" />
     <style>
       /* GENEL SAYFA DÜZENİ */
@@ -92,9 +92,9 @@
         background-color: #0056b3;
       }
 
-      /* ROBOT SİMÜLASYON MENÜSÜ */
+      /* ROBOT SİMÜLASYON MENÜSÜ (SOL PANEL - GENİŞLETİLDİ) */
       .left-sidebar {
-        width: 180px;
+        width: 240px; /* Genişletildi */
         height: 100%;
         background-color: #252526;
         border: 1px solid #3e3e42;
@@ -116,13 +116,6 @@
         padding-bottom: 5px;
         text-align: center;
       }
-      .left-sidebar h4 {
-        margin: 5px 0;
-        font-size: 0.85rem;
-        color: #ff9f43;
-        border-bottom: 1px solid #444;
-        padding-bottom: 2px;
-      }
       .left-sidebar input[type="number"] {
         width: 100%;
         background: #444;
@@ -133,14 +126,43 @@
         text-align: center;
         box-sizing: border-box;
       }
-      .left-sidebar select {
-        width: 100%;
-        background: #444;
-        border: 1px solid #555;
-        color: #fff;
-        padding: 4px;
+
+      /* YENİ MEKANİZMA BUTON STİLLERİ */
+      .mech-label {
+        font-size: 0.85rem;
+        color: #aaa;
+        margin-bottom: 2px;
+        display: block;
+      }
+      .mech-toggle-container {
+        display: flex;
+        background-color: #333;
+        border-radius: 5px;
+        padding: 2px;
+        margin-bottom: 8px;
+        border: 1px solid #444;
+      }
+      .mech-btn {
+        flex: 1;
+        background: transparent;
+        border: none;
+        color: #888;
+        padding: 6px;
+        font-size: 0.8rem;
+        cursor: pointer;
         border-radius: 4px;
-        margin-top: 2px;
+        transition: all 0.3s ease; /* Geçiş efekti */
+        font-weight: 500;
+      }
+      .mech-btn:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+        color: #ccc;
+      }
+      .mech-btn.active {
+        background-color: #007bff;
+        color: white;
+        font-weight: bold;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
       }
 
       /* PLAY BUTONU */
@@ -451,8 +473,9 @@
 
       /* --------------------------- */
 
+      /* SAĞ PANEL - DARALTILDI */
       .output-panel {
-        width: 310px;
+        width: 260px; /* Daraltıldı */
         background-color: #2d2d2d;
         padding: 10px;
         border-radius: 8px;
@@ -544,7 +567,7 @@
       />
     </div>
 
-    <h1>VEX Path Planner - Pro Editor v40</h1>
+    <h1>VEX Path Planner - Pro Editor v41</h1>
 
     <div class="top-controls">
       <div class="switch-container">
@@ -637,36 +660,56 @@
 
         <h3>Mekanizma Yönleri</h3>
 
-        <div class="setting-group">
-          <label>Intake:</label>
-          <select id="intakeConfig" onchange="updateSnapZones()">
-            <option value="front">Önde</option>
-            <option value="back">Arkada</option>
-          </select>
+        <label class="mech-label">Intake:</label>
+        <div class="mech-toggle-container" id="mech-intake">
+          <button
+            class="mech-btn active"
+            onclick="setMech('intake', 'front', this)"
+          >
+            Önde
+          </button>
+          <button class="mech-btn" onclick="setMech('intake', 'back', this)">
+            Arkada
+          </button>
         </div>
 
-        <div class="setting-group">
-          <label>Long Shooter:</label>
-          <select id="longShooterConfig" onchange="updateSnapZones()">
-            <option value="front">Önde</option>
-            <option value="back">Arkada</option>
-          </select>
+        <label class="mech-label">Long Shooter:</label>
+        <div class="mech-toggle-container" id="mech-long">
+          <button
+            class="mech-btn active"
+            onclick="setMech('long', 'front', this)"
+          >
+            Önde
+          </button>
+          <button class="mech-btn" onclick="setMech('long', 'back', this)">
+            Arkada
+          </button>
         </div>
 
-        <div class="setting-group">
-          <label>Mid Shooter:</label>
-          <select id="midShooterConfig" onchange="updateSnapZones()">
-            <option value="front">Önde</option>
-            <option value="back">Arkada</option>
-          </select>
+        <label class="mech-label">Mid Shooter:</label>
+        <div class="mech-toggle-container" id="mech-mid">
+          <button
+            class="mech-btn active"
+            onclick="setMech('mid', 'front', this)"
+          >
+            Önde
+          </button>
+          <button class="mech-btn" onclick="setMech('mid', 'back', this)">
+            Arkada
+          </button>
         </div>
 
-        <div class="setting-group">
-          <label>Low Shooter:</label>
-          <select id="lowShooterConfig" onchange="updateSnapZones()">
-            <option value="front">Önde</option>
-            <option value="back">Arkada</option>
-          </select>
+        <label class="mech-label">Low Shooter:</label>
+        <div class="mech-toggle-container" id="mech-low">
+          <button
+            class="mech-btn active"
+            onclick="setMech('low', 'front', this)"
+          >
+            Önde
+          </button>
+          <button class="mech-btn" onclick="setMech('low', 'back', this)">
+            Arkada
+          </button>
         </div>
 
         <button class="play-btn" id="playBtn" onclick="toggleAnimation()">
@@ -893,11 +936,13 @@
       const movementSettings = document.getElementById("movementSettings");
       const deleteBtn = document.getElementById("deleteBtn");
 
-      // Mekanizma Ayarları Selectleri
-      const intakeConfig = document.getElementById("intakeConfig");
-      const longShooterConfig = document.getElementById("longShooterConfig");
-      const midShooterConfig = document.getElementById("midShooterConfig");
-      const lowShooterConfig = document.getElementById("lowShooterConfig");
+      // MEKANİZMA DURUMU (YENİ)
+      let mechanismState = {
+        intake: "front",
+        long: "front",
+        mid: "front",
+        low: "front",
+      };
 
       const bgImage = new Image();
       bgImage.src = "field.png";
@@ -909,7 +954,6 @@
       const OFFSET_Y = 0;
 
       // HİZALAMA ALANLARI TANIMLARI
-      // type: Hangi mekanizmaya ait olduğunu belirtir
       const SNAP_DEFINITIONS = [
         // Intake (Köşe 64'lüler)
         { x: 48, y: 64, w: 10, h: 10, angle: 0, type: "intake" },
@@ -925,9 +969,11 @@
 
         // Mid Shooter (14, 14 Çaprazları)
         { x: 14, y: 14, w: 10, h: 10, angle: -135, type: "mid" },
+        { x: -14, y: 14, w: 10, h: 10, angle: 135, type: "mid" }, // Hatalı yazım düzeltildi
         { x: -14, y: -14, w: 10, h: 10, angle: 45, type: "mid" },
+        { x: 14, y: -14, w: 10, h: 10, angle: -45, type: "mid" }, // Hatalı yazım düzeltildi
 
-        // Low Shooter (14, -14 Çaprazları)
+        // Low Shooter (14, -14 Çaprazları - Yön farklı)
         { x: -14, y: 14, w: 10, h: 10, angle: 135, type: "low" },
         { x: 14, y: -14, w: 10, h: 10, angle: -45, type: "low" },
       ];
@@ -944,24 +990,51 @@
         drawScreen();
       };
 
+      // --- MEKANİZMA AYARLAMA (BUTONLAR) ---
+      function setMech(mechType, side, btnElement) {
+        saveState(); // Değişiklik öncesi kaydet
+
+        mechanismState[mechType] = side;
+
+        // Buton stillerini güncelle
+        let parent = btnElement.parentElement;
+        let btns = parent.getElementsByClassName("mech-btn");
+        for (let b of btns) {
+          b.classList.remove("active");
+        }
+        btnElement.classList.add("active");
+
+        updateSnapZones();
+      }
+
+      function updateUIForMechanisms() {
+        // Yükleme sırasında butonları doğru duruma getir
+        updateMechBtnGroup("intake", mechanismState.intake);
+        updateMechBtnGroup("long", mechanismState.long);
+        updateMechBtnGroup("mid", mechanismState.mid);
+        updateMechBtnGroup("low", mechanismState.low);
+      }
+
+      function updateMechBtnGroup(type, side) {
+        let container = document.getElementById("mech-" + type);
+        if (!container) return;
+        let btns = container.getElementsByClassName("mech-btn");
+        for (let b of btns) {
+          b.classList.remove("active");
+          // "Önde" butonu mu, "Arkada" mı?
+          if (b.innerText === "Önde" && side === "front")
+            b.classList.add("active");
+          if (b.innerText === "Arkada" && side === "back")
+            b.classList.add("active");
+        }
+      }
+
       // --- MEKANİZMA GÜNCELLEME ---
       function updateSnapZones() {
-        // Ayar değiştiğinde, eğer bir nokta bu zone'lardan birindeyse açısını güncelle
-        // Tüm noktaları kontrol etmeye gerek yok, sadece aktif seçim varsa ya da sürükleme sırasında
-        // Ama kullanıcı menüden değiştirdiğinde anlık etki istiyor olabilir.
-        // O yüzden tüm rawPoints üzerinde gezip, "acaba bir zone'da mı?" diye bakıp güncellemek mantıklı.
-
         let changed = false;
         rawPoints.forEach((p) => {
-          // Noktayı inch'e çevirip kontrol etmemiz lazım ama getSnappedPosition piksel ile çalışıyor.
-          // Tersten gidelim: getSnappedPosition zaten piksel ile çalışıyor, p.x ve p.y piksel.
-
           let snapped = getSnappedPosition(p.x, p.y);
           if (snapped.snapped && snapped.hasAngle) {
-            // Eğer nokta zaten bir zone içindeyse ve açısı varsa güncelle
-            // Kullanıcı manuel olarak açıyı değiştirdiyse bozmamak lazım ama
-            // "Snap" mantığı genelde üzerine yazmayı gerektirir.
-            // Şimdilik direkt güncelleyelim.
             if (p.customHeading !== snapped.angle) {
               p.customHeading = snapped.angle;
               changed = true;
@@ -978,7 +1051,6 @@
 
       // --- SNAP / HİZALAMA FONKSİYONLARI ---
 
-      // İnç -> Piksel dönüşümü (Merkeze göre)
       function inchToPixel(inchX, inchY) {
         let px = inchY * PIXELS_PER_INCH + CANVAS_SIZE / 2; // Yatay
         let py = inchX * PIXELS_PER_INCH + CANVAS_SIZE / 2; // Dikey
@@ -992,29 +1064,24 @@
       // Dinamik açı hesaplama
       function getAdjustedAngle(baseAngle, type) {
         let isBack = false;
-        if (type === "intake" && intakeConfig.value === "back") isBack = true;
-        if (type === "long" && longShooterConfig.value === "back")
+        if (type === "intake" && mechanismState.intake === "back")
           isBack = true;
-        if (type === "mid" && midShooterConfig.value === "back") isBack = true;
-        if (type === "low" && lowShooterConfig.value === "back") isBack = true;
+        if (type === "long" && mechanismState.long === "back") isBack = true;
+        if (type === "mid" && mechanismState.mid === "back") isBack = true;
+        if (type === "low" && mechanismState.low === "back") isBack = true;
 
         if (isBack) {
           return (baseAngle + 180) % 360;
-          // Vex açısı -180 ile 180 arası olabilir veya 0-360.
-          // Kodun kalanı -180/180 kullanıyor. Düzeltelim:
-          // Basit toplama yapıp, rotateAngle fonksiyonundaki gibi mod alacağız.
         }
         return baseAngle;
       }
 
-      // Açıyı -180 ile 180 arasına sıkıştırma
       function normalizeAngle(angle) {
         while (angle > 180) angle -= 360;
         while (angle <= -180) angle += 360;
         return angle;
       }
 
-      // Snap kontrolü ve Açı bilgisi dönüşü
       function getSnappedPosition(mx, my) {
         let result = {
           x: mx,
@@ -1040,7 +1107,6 @@
             result.snapped = true;
 
             if (zone.angle !== undefined) {
-              // Açıyı konfigürasyona göre ayarla
               let finalAngle = getAdjustedAngle(zone.angle, zone.type);
               result.angle = normalizeAngle(finalAngle);
               result.hasAngle = true;
@@ -1058,6 +1124,7 @@
           processedPoints: JSON.parse(JSON.stringify(processedPoints)),
           selectedPointIndex: selectedPointIndex,
           isPointMode: isPointMode,
+          mechanismState: JSON.parse(JSON.stringify(mechanismState)), // Mekanizma durumunu da kaydet
         };
         undoStack.push(state);
         if (undoStack.length > MAX_STACK_SIZE) undoStack.shift();
@@ -1072,6 +1139,7 @@
           processedPoints: JSON.parse(JSON.stringify(processedPoints)),
           selectedPointIndex: selectedPointIndex,
           isPointMode: isPointMode,
+          mechanismState: JSON.parse(JSON.stringify(mechanismState)),
         };
         redoStack.push(currentState);
 
@@ -1087,6 +1155,7 @@
           processedPoints: JSON.parse(JSON.stringify(processedPoints)),
           selectedPointIndex: selectedPointIndex,
           isPointMode: isPointMode,
+          mechanismState: JSON.parse(JSON.stringify(mechanismState)),
         };
         undoStack.push(currentState);
 
@@ -1099,6 +1168,11 @@
         processedPoints = state.processedPoints;
         selectedPointIndex = state.selectedPointIndex;
         isPointMode = state.isPointMode;
+
+        if (state.mechanismState) {
+          mechanismState = state.mechanismState;
+          updateUIForMechanisms();
+        }
 
         document.getElementById("modeToggle").checked = isPointMode;
         modeLabel.innerText = isPointMode ? "Nokta Ekleme" : "Serbest Çizim";
@@ -1233,7 +1307,7 @@
       function savePath() {
         let listToSave = isPointMode || isDrawing ? rawPoints : processedPoints;
         const data = {
-          version: "v40",
+          version: "v41",
           points: listToSave,
           settings: {
             isPointMode: isPointMode,
@@ -1246,12 +1320,7 @@
               show: simToggle.checked,
             },
             relativeOrigin: isRelativeOrigin,
-            mechanisms: {
-              intake: intakeConfig.value,
-              long: longShooterConfig.value,
-              mid: midShooterConfig.value,
-              low: lowShooterConfig.value,
-            },
+            mechanisms: mechanismState, // Kaydet
           },
         };
 
@@ -1300,13 +1369,8 @@
               }
               // Mekanizma ayarlarını yükle
               if (data.settings.mechanisms) {
-                intakeConfig.value = data.settings.mechanisms.intake || "front";
-                longShooterConfig.value =
-                  data.settings.mechanisms.long || "front";
-                midShooterConfig.value =
-                  data.settings.mechanisms.mid || "front";
-                lowShooterConfig.value =
-                  data.settings.mechanisms.low || "front";
+                mechanismState = data.settings.mechanisms;
+                updateUIForMechanisms();
               }
             }
             selectedPointIndex = -1;
@@ -1499,6 +1563,7 @@
             drawScreen();
             if (!isDrawing) processPath(true);
 
+            // Eğer açı değiştiyse UI'ı güncelle (Knob dönsün diye)
             if (snapped.hasAngle) {
               updateSelectionUI();
             }
