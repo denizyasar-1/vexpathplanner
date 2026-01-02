@@ -3,10 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VEX Path Planner - Pro Editor v30</title>
-
+    <title>VEX Path Planner - Pro Editor v34 (Precise Hitbox)</title>
     <link rel="icon" href="ibb_logo_favicon.jpg" type="image/jpeg" />
-
     <style>
       /* GENEL SAYFA DÜZENİ */
       body {
@@ -30,6 +28,14 @@
         flex-shrink: 0;
       }
 
+      /* DOSYA MENÜSÜ */
+      .file-menu-container {
+        position: absolute;
+        top: 15px;
+        left: 15px;
+        z-index: 100;
+      }
+
       /* 2. EKLEME: SAĞ ÜST LOGO STİLİ */
       .top-right-logo {
         position: absolute;
@@ -39,14 +45,6 @@
         height: auto;
         z-index: 100;
         border-radius: 5px; /* Hafif yuvarlak köşeler */
-      }
-
-      /* DOSYA MENÜSÜ */
-      .file-menu-container {
-        position: absolute;
-        top: 15px;
-        left: 15px;
-        z-index: 100;
       }
 
       .dropbtn {
@@ -243,6 +241,10 @@
       }
       input:checked + .slider.pink {
         background-color: #d63384;
+      }
+      /* Turuncu slider (Orijin) */
+      input:checked + .slider.orange {
+        background-color: #fd7e14;
       }
       input:checked + .slider:before {
         transform: translateX(18px);
@@ -504,11 +506,21 @@
         margin-top: 5px;
         width: 100%;
       }
+
+      /* SAĞ ÜST LOGO */
+      .top-right-logo {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        width: 60px;
+        height: auto;
+        z-index: 100;
+        border-radius: 5px;
+      }
     </style>
   </head>
   <body>
     <img src="ibb_logo.jpg" alt="İBB Tech Logo" class="top-right-logo" />
-
     <div class="file-menu-container">
       <div class="dropdown">
         <button class="dropbtn">Dosya</button>
@@ -528,7 +540,7 @@
       />
     </div>
 
-    <h1>VEX Path Planner - Pro Editor v30</h1>
+    <h1>VEX Path Planner - Pro Editor v34</h1>
 
     <div class="top-controls">
       <div class="switch-container">
@@ -543,6 +555,17 @@
           <span class="slider"></span>
         </label>
         <span id="modeLabel">Nokta Ekleme</span>
+      </div>
+
+      <span style="border-left: 1px solid #555; height: 20px"></span>
+
+      <div class="switch-container">
+        <span style="font-size: 12px; color: #aaa">ORİJİN:</span>
+        <label class="switch">
+          <input type="checkbox" id="originToggle" onchange="toggleOrigin()" />
+          <span class="slider orange"></span>
+        </label>
+        <span id="originLabel">Merkez</span>
       </div>
 
       <span style="border-left: 1px solid #555; height: 20px"></span>
@@ -816,6 +839,16 @@
       let isPlaying = false;
       let animationFrameId = null;
 
+      // Orijin Ayarı
+      const originToggle = document.getElementById("originToggle");
+      const originLabel = document.getElementById("originLabel");
+      let isRelativeOrigin = false;
+
+      // Undo/Redo Yığınları
+      let undoStack = [];
+      let redoStack = [];
+      const MAX_STACK_SIZE = 50;
+
       const pointNameInput = document.getElementById("pointNameInput");
       const pointSpeedInput = document.getElementById("pointSpeedInput");
       const pointDirInput = document.getElementById("pointDirInput");
@@ -843,6 +876,108 @@
         drawScreen();
       };
 
+      // --- UNDO / REDO SİSTEMİ ---
+      function saveState() {
+        const state = {
+          rawPoints: JSON.parse(JSON.stringify(rawPoints)),
+          processedPoints: JSON.parse(JSON.stringify(processedPoints)),
+          selectedPointIndex: selectedPointIndex,
+          isPointMode: isPointMode,
+        };
+        undoStack.push(state);
+        if (undoStack.length > MAX_STACK_SIZE) undoStack.shift();
+        redoStack = [];
+      }
+
+      function undo() {
+        if (undoStack.length === 0) return;
+
+        const currentState = {
+          rawPoints: JSON.parse(JSON.stringify(rawPoints)),
+          processedPoints: JSON.parse(JSON.stringify(processedPoints)),
+          selectedPointIndex: selectedPointIndex,
+          isPointMode: isPointMode,
+        };
+        redoStack.push(currentState);
+
+        const prevState = undoStack.pop();
+        restoreState(prevState);
+      }
+
+      function redo() {
+        if (redoStack.length === 0) return;
+
+        const currentState = {
+          rawPoints: JSON.parse(JSON.stringify(rawPoints)),
+          processedPoints: JSON.parse(JSON.stringify(processedPoints)),
+          selectedPointIndex: selectedPointIndex,
+          isPointMode: isPointMode,
+        };
+        undoStack.push(currentState);
+
+        const nextState = redoStack.pop();
+        restoreState(nextState);
+      }
+
+      function restoreState(state) {
+        rawPoints = state.rawPoints;
+        processedPoints = state.processedPoints;
+        selectedPointIndex = state.selectedPointIndex;
+        isPointMode = state.isPointMode;
+
+        document.getElementById("modeToggle").checked = isPointMode;
+        modeLabel.innerText = isPointMode ? "Nokta Ekleme" : "Serbest Çizim";
+
+        updateSelectionUI();
+        drawScreen();
+        generateFormattedOutput(isPointMode ? rawPoints : processedPoints);
+      }
+
+      function undoLastPoint() {
+        undo();
+      }
+
+      // --- KLAVYE KISAYOLLARI ---
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Delete") {
+          if (selectedPointIndex !== -1) deleteSelectedPoint();
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+          e.preventDefault();
+          undo();
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") {
+          e.preventDefault();
+          redo();
+        }
+      });
+
+      // --- ORİJİN FONKSİYONU ---
+      function toggleOrigin() {
+        isRelativeOrigin = originToggle.checked;
+        if (isRelativeOrigin) {
+          originLabel.innerText = "Başlangıç";
+        } else {
+          originLabel.innerText = "Merkez";
+        }
+        drawScreen();
+        updateSelectionUI();
+        generateFormattedOutput(isPointMode ? rawPoints : processedPoints);
+      }
+
+      // --- SÜREKLİ GÜNCEL GENEL HIZ FONKSİYONU ---
+      function updateGlobalSpeed() {
+        saveState();
+        let val = globalSpeedInput.value;
+        for (let i = 0; i < rawPoints.length; i++) {
+          rawPoints[i].speed = val;
+        }
+        if (selectedPointIndex !== -1) {
+          pointSpeedInput.value = val;
+        }
+        processPath(true);
+      }
+
       // --- ANIMASYON MANTIĞI ---
       function toggleAnimation() {
         if (!simToggle.checked) {
@@ -855,7 +990,6 @@
         if (isPlaying) {
           playBtn.innerHTML = "⏹ Durdur";
           playBtn.classList.add("playing");
-          // Eğer sonda ise başa al
           let path = getVisualPathPoints();
           if (currentSimIndex >= path.length - 1) {
             currentSimIndex = 0;
@@ -877,9 +1011,10 @@
           if (path[Math.floor(currentSimIndex)].speed)
             currentSpeed = parseInt(path[Math.floor(currentSimIndex)].speed);
 
-          let speedFactor = currentSpeed / 200;
+          // Hız
+          let step = currentSpeed / 100;
 
-          currentSimIndex += speedFactor;
+          currentSimIndex += step;
           if (currentSimIndex >= path.length - 1) {
             currentSimIndex = path.length - 1;
             isPlaying = false;
@@ -893,6 +1028,7 @@
 
       // --- KNOB EVENTLERİ ---
       knobHandle.addEventListener("mousedown", (e) => {
+        saveState();
         isKnobDragging = true;
         e.preventDefault();
         e.stopPropagation();
@@ -904,7 +1040,6 @@
       });
 
       document.addEventListener("mousemove", (e) => {
-        // Knob işlemi
         if (isKnobDragging) {
           const rect = knobContainer.getBoundingClientRect();
           const centerX = rect.left + rect.width / 2;
@@ -915,26 +1050,15 @@
           let degrees = radians * (180 / Math.PI);
           degrees = Math.round(degrees);
           handleRotator.style.transform = `rotate(${degrees}deg)`;
-          manualAngleChange(degrees);
+          manualAngleChange(degrees, false);
         }
       });
       // -----------------------
 
-      // --- KLAVYE VE DOSYA ---
-      document.addEventListener("keydown", (e) => {
-        if (e.key === "Delete") {
-          if (selectedPointIndex !== -1) deleteSelectedPoint();
-        }
-        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
-          e.preventDefault();
-          undoLastPoint();
-        }
-      });
-
       function savePath() {
         let listToSave = isPointMode || isDrawing ? rawPoints : processedPoints;
         const data = {
-          version: "v30",
+          version: "v34",
           points: listToSave,
           settings: {
             isPointMode: isPointMode,
@@ -946,6 +1070,7 @@
               height: simHeightInput.value,
               show: simToggle.checked,
             },
+            relativeOrigin: isRelativeOrigin,
           },
         };
 
@@ -967,6 +1092,8 @@
         const reader = new FileReader();
         reader.onload = function (e) {
           try {
+            saveState();
+
             const data = JSON.parse(e.target.result);
             if (data.points) {
               rawPoints = data.points;
@@ -985,6 +1112,10 @@
                 simWidthInput.value = data.settings.robotSim.width;
                 simHeightInput.value = data.settings.robotSim.height;
                 simToggle.checked = data.settings.robotSim.show;
+              }
+              if (data.settings.relativeOrigin !== undefined) {
+                originToggle.checked = data.settings.relativeOrigin;
+                toggleOrigin();
               }
             }
             selectedPointIndex = -1;
@@ -1036,29 +1167,54 @@
         processPath();
       }
 
-      function updateGlobalSpeed() {}
-
-      // --- MOUSE EVENTLERİ (CANVAS) ---
+      // --- MOUSE EVENTLERİ (CANVAS - GÜNCELLENMİŞ HIT TEST) ---
       canvas.addEventListener("mousedown", (e) => {
         const rect = canvas.getBoundingClientRect();
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;
 
+        // 1. SİMÜLASYON KUTUSUNA TIKLAMA KONTROLÜ (Döndürülmüş Dikdörtgen Testi)
         if (simToggle.checked && processedPoints.length > 1) {
           let visualPath = getVisualPathPoints();
           let idx = Math.floor(currentSimIndex);
           if (idx < visualPath.length) {
-            let p = visualPath[idx];
-            let dist = Math.hypot(p.x - mx, p.y - my);
-            if (dist < 40) {
+            let p = visualPath[idx]; // Robotun merkez konumu
+
+            // Robotun açısını bul
+            let angle = 0;
+            if (idx < visualPath.length - 1) {
+              angle = calculateRawHeading(p, visualPath[idx + 1]);
+            } else if (idx > 0) {
+              angle = calculateRawHeading(visualPath[idx - 1], p);
+            }
+            if (p.dir === "rev") angle += 180;
+
+            // Robot boyutları (piksel)
+            let w = parseFloat(simWidthInput.value) * PIXELS_PER_INCH;
+            let h = parseFloat(simHeightInput.value) * PIXELS_PER_INCH;
+
+            // --- MATEMATİKSEL KONTROL ---
+            // Mouse noktasını robotun merkezine göre yerelleştir
+            let dx = mx - p.x;
+            let dy = my - p.y;
+
+            // Mouse noktasını robotun açısının tersine döndür
+            // Böylece eksenlere hizalı (axis-aligned) bir kutu gibi kontrol edebiliriz
+            let rad = -angle * (Math.PI / 180);
+            let localX = dx * Math.cos(rad) - dy * Math.sin(rad);
+            let localY = dx * Math.sin(rad) + dy * Math.cos(rad);
+
+            // Artık düz bir dikdörtgen kontrolü yapabiliriz
+            // (Genişlik/2 ve Yükseklik/2 sınırları içinde mi?)
+            if (Math.abs(localX) <= w / 2 && Math.abs(localY) <= h / 2) {
               isSimDragging = true;
-              // Oynatılıyorsa durdur
               if (isPlaying) toggleAnimation();
-              return;
+              return; // ÖNEMLİ: Başka hiçbir işlem yapma
             }
           }
         }
 
+        // 2. NOKTA SEÇME VEYA OLUŞTURMA İŞLEMLERİ (Buraya sadece robot tıklanmadıysa gelinir)
         let targetList = isPointMode || isDrawing ? rawPoints : processedPoints;
         let clickedIndex = -1;
         for (let i = targetList.length - 1; i >= 0; i--) {
@@ -1072,6 +1228,7 @@
         if (clickedIndex !== -1) {
           selectedPointIndex = clickedIndex;
           isDragging = true;
+          saveState();
           updateSelectionUI();
           drawScreen();
           return;
@@ -1085,12 +1242,14 @@
         }
 
         if (isPointMode) {
+          saveState();
           addRawPoint(mx, my);
           processPath();
           selectedPointIndex = rawPoints.length - 1;
           isDragging = true;
           updateSelectionUI();
         } else {
+          saveState();
           isDrawing = true;
           rawPoints = [];
           processedPoints = [];
@@ -1172,24 +1331,16 @@
 
       function deleteSelectedPoint() {
         if (selectedPointIndex !== -1) {
-          // BAŞLANGIÇ NOKTASINI SİLME KONTROLÜ KALDIRILDI
-          // ARTIK HER NOKTA SİLİNEBİLİR
-
+          saveState();
           let list = isPointMode ? rawPoints : processedPoints;
-
           list.splice(selectedPointIndex, 1);
-
-          // Eğer hiç nokta kalmadıysa sıfırla
           if (list.length === 0) {
             clearCanvas();
             return;
           }
-
-          // Seçili index listeden taştıysa
           if (selectedPointIndex >= list.length) {
             selectedPointIndex = list.length - 1;
           }
-
           updateSelectionUI();
           processPath(true);
         }
@@ -1206,6 +1357,7 @@
       }
 
       function clearCanvas() {
+        saveState();
         rawPoints = [];
         processedPoints = [];
         selectedPointIndex = -1;
@@ -1216,9 +1368,10 @@
       }
 
       function mirrorPath(axis) {
-        let targetList = isPointMode || isDrawing ? rawPoints : processedPoints;
-        if (targetList.length === 0) return;
+        if (rawPoints.length === 0) return;
+        saveState();
 
+        let targetList = isPointMode || isDrawing ? rawPoints : processedPoints;
         const cx = CANVAS_SIZE / 2;
         const cy = CANVAS_SIZE / 2;
 
@@ -1246,7 +1399,7 @@
         if (selectedPointIndex !== -1) updateSelectionUI();
       }
 
-      // --- UI GÜNCELLEME (AKILLI SLIDER) ---
+      // --- UI GÜNCELLEME ---
       function updateSelectionUI() {
         if (selectedPointIndex !== -1) {
           noSelectionMsg.style.display = "none";
@@ -1268,7 +1421,6 @@
           if (selectedPointIndex === 0) {
             pointNameInput.value = "Başlangıç Noktası";
             pointNameInput.disabled = true;
-            // ARTIK SİLME BUTONU AKTİF
             deleteBtn.disabled = false;
             deleteBtn.style.opacity = "1";
             movementSettings.style.display = "none";
@@ -1282,7 +1434,6 @@
             pointDirInput.value = p.dir || "fwd";
           }
 
-          // --- KNOB MANTIĞI ---
           let displayAngle = 0;
           if (p.customHeading !== null) {
             displayAngle = p.customHeading;
@@ -1305,7 +1456,6 @@
             }
           }
           handleRotator.style.transform = `rotate(${displayAngle}deg)`;
-          // --------------------------------
         } else {
           noSelectionMsg.style.display = "block";
           selectionControls.style.display = "none";
@@ -1321,6 +1471,12 @@
         }
       }
 
+      pointNameInput.addEventListener("focus", saveState);
+      pointSpeedInput.addEventListener("focus", saveState);
+      coordXInput.addEventListener("focus", saveState);
+      coordYInput.addEventListener("focus", saveState);
+      angleInput.addEventListener("focus", saveState);
+
       function manualSpeedChange(val) {
         if (selectedPointIndex !== -1 && selectedPointIndex !== 0) {
           let list = isPointMode ? rawPoints : processedPoints;
@@ -1331,6 +1487,7 @@
 
       function manualDirChange(val) {
         if (selectedPointIndex !== -1 && selectedPointIndex !== 0) {
+          saveState();
           let list = isPointMode ? rawPoints : processedPoints;
           list[selectedPointIndex].dir = val;
           generateFormattedOutput(list);
@@ -1345,8 +1502,15 @@
         let newYInches = parseFloat(coordYInput.value);
         if (isNaN(newXInches) || isNaN(newYInches)) return;
 
-        let pX = newYInches * PIXELS_PER_INCH + CANVAS_SIZE / 2;
-        let pY = newXInches * PIXELS_PER_INCH + CANVAS_SIZE / 2;
+        let originX = CANVAS_SIZE / 2;
+        let originY = CANVAS_SIZE / 2;
+        if (isRelativeOrigin && rawPoints.length > 0) {
+          originX = rawPoints[0].x;
+          originY = rawPoints[0].y;
+        }
+
+        let pX = newYInches * PIXELS_PER_INCH + originX;
+        let pY = newXInches * PIXELS_PER_INCH + originY;
 
         list[selectedPointIndex].x = pX;
         list[selectedPointIndex].y = pY;
@@ -1354,7 +1518,7 @@
         generateFormattedOutput(list);
       }
 
-      function manualAngleChange(val) {
+      function manualAngleChange(val, shouldSave = true) {
         if (selectedPointIndex !== -1) {
           let list = isPointMode ? rawPoints : processedPoints;
           let angleVal = parseFloat(val);
@@ -1372,6 +1536,7 @@
 
       function rotateAngle(delta) {
         if (selectedPointIndex !== -1) {
+          saveState();
           let list = isPointMode ? rawPoints : processedPoints;
           let current = list[selectedPointIndex].customHeading;
           if (current === null) current = 0;
@@ -1387,6 +1552,7 @@
 
       function resetAngle() {
         if (selectedPointIndex !== -1) {
+          saveState();
           let list = isPointMode ? rawPoints : processedPoints;
           list[selectedPointIndex].customHeading = null;
           updateSelectionUI();
@@ -1463,7 +1629,6 @@
               name: "",
               speed: defaultSpeed,
               dir: "fwd",
-              dir: "fwd",
             });
 
             processedPoints = newPoints;
@@ -1473,13 +1638,10 @@
         generateFormattedOutput(processedPoints);
       }
 
-      // --- ADAPTIVE SAMPLING (Eğri Çizgi) ---
       function getHermiteSplinePoints(points, segments) {
         if (points.length < 2) return points;
         let splinePoints = [];
         let tangents = [];
-
-        // Teğetleri hesapla
         for (let i = 0; i < points.length; i++) {
           let tX, tY;
           let magnitude = 0;
@@ -1500,7 +1662,6 @@
           tangents.push({ x: tX, y: tY });
         }
 
-        // Noktalar arası interpolasyon
         for (let i = 0; i < points.length - 1; i++) {
           let p0 = points[i];
           let p1 = points[i + 1];
@@ -1510,9 +1671,7 @@
           let segSpeed = p1.speed || "127";
           let segDir = p1.dir || "fwd";
 
-          // ADAPTIVE: Mesafeyi ölç
           let distPixels = Math.hypot(p1.x - p0.x, p1.y - p0.y);
-          // Her 2 piksel için 1 nokta oluştur (Yoğunluk)
           let steps = Math.max(5, Math.floor(distPixels / 2));
 
           for (let k = 0; k <= steps; k++) {
@@ -1538,12 +1697,10 @@
         return splinePoints;
       }
 
-      // --- ADAPTIVE SAMPLING (Düz Çizgi) ---
       function getVisualPathPoints() {
         if (processedPoints.length < 2) return [];
 
         if (curveToggle.checked) {
-          // Spline fonksiyonu zaten adaptive hale getirildi
           return getHermiteSplinePoints(processedPoints, 0);
         } else {
           let pts = [];
@@ -1554,9 +1711,7 @@
             let segSpeed = p2.speed || "127";
             let segDir = p2.dir || "fwd";
 
-            // ADAPTIVE: Mesafeyi ölç
             let distPixels = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-            // Her 2 piksel için 1 nokta
             let steps = Math.max(2, Math.floor(distPixels / 2));
 
             for (let k = 0; k < steps; k++) {
@@ -1765,8 +1920,15 @@
       }
 
       function drawOriginPoint() {
-        const ox = CANVAS_SIZE / 2;
-        const oy = CANVAS_SIZE / 2;
+        const ox =
+          isRelativeOrigin && rawPoints.length > 0
+            ? rawPoints[0].x
+            : CANVAS_SIZE / 2;
+        const oy =
+          isRelativeOrigin && rawPoints.length > 0
+            ? rawPoints[0].y
+            : CANVAS_SIZE / 2;
+
         ctx.fillStyle = "yellow";
         ctx.beginPath();
         ctx.arc(ox, oy, 4, 0, Math.PI * 2);
@@ -1847,9 +2009,8 @@
 
             let lineData = `{${xF}_in, ${yF}_in, ${aF}_deg, ${ptDir}, ${ptSpeed}}`;
 
-            // DÜZELTME: Virgül, veri bloğunun hemen yanına ekleniyor (yorumdan önce)
             if (i > 1) outputText += "\n";
-            outputText += "      " + lineData;
+            outputText += "      " + lineData;
 
             if (i < points.length - 1) {
               outputText += ",";
@@ -1862,10 +2023,10 @@
         }
 
         if (points.length === 1) {
-          outputText += "      // Hareket için daha fazla nokta ekleyin...\n";
+          outputText += "      // Hareket için daha fazla nokta ekleyin...\n";
         }
 
-        outputText += "\n}, true);";
+        outputText += "\n}, true);\nchassis.pid_wait();";
         outputBox.value = outputText;
       }
 
@@ -1874,5 +2035,6 @@
         document.execCommand("copy");
       }
     </script>
+     
   </body>
 </html>
