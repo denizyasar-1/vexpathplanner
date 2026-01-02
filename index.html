@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VEX Path Planner - Pro Editor v41 (UI Update)</title>
+    <title>VEX Path Planner - Pro Editor v43 (Logic Fix)</title>
     <link rel="icon" href="ibb_logo_favicon.jpg" type="image/jpeg" />
     <style>
       /* GENEL SAYFA DÜZENİ */
@@ -92,9 +92,63 @@
         background-color: #0056b3;
       }
 
-      /* ROBOT SİMÜLASYON MENÜSÜ (SOL PANEL - GENİŞLETİLDİ) */
+      /* YAN YANA DÜZEN İÇİN CSS (FLEX) */
+      .setting-group-inline {
+        background: #333;
+        padding: 8px;
+        border-radius: 6px;
+        display: flex;
+        justify-content: space-between; /* Yazı solda, input sağda */
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      .setting-group-inline label {
+        margin: 0;
+        font-size: 0.85rem;
+        color: #aaa;
+        white-space: nowrap; /* Yazı alt satıra geçmesin */
+        margin-right: 10px;
+      }
+      .setting-group-inline input[type="number"],
+      .setting-group-inline input[type="text"] {
+        width: 80px !important; /* Genişliği sabitle */
+        background: #444;
+        border: 1px solid #555;
+        color: #fff;
+        padding: 4px;
+        border-radius: 4px;
+        text-align: center;
+        box-sizing: border-box;
+      }
+
+      /* TOGGLE BUTON STİLİ (Tek Buton) */
+      .toggle-action-btn {
+        width: 80px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        padding: 5px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.8rem;
+        font-weight: bold;
+        transition: 0.2s;
+        text-align: center;
+      }
+      .toggle-action-btn:hover {
+        background-color: #0056b3;
+      }
+      /* Arkada/Geri durumu için renk değişimi */
+      .toggle-action-btn.secondary-state {
+        background-color: #fd7e14; /* Turuncu */
+      }
+      .toggle-action-btn.secondary-state:hover {
+        background-color: #e36e0e;
+      }
+
+      /* ROBOT SİMÜLASYON MENÜSÜ */
       .left-sidebar {
-        width: 240px; /* Genişletildi */
+        width: 240px;
         height: 100%;
         background-color: #252526;
         border: 1px solid #3e3e42;
@@ -102,67 +156,19 @@
         padding: 10px;
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 5px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
         box-sizing: border-box;
         flex-shrink: 0;
         overflow-y: auto;
       }
       .left-sidebar h3 {
-        margin: 5px 0;
+        margin: 10px 0 5px 0;
         font-size: 0.95rem;
         color: #d63384;
         border-bottom: 1px solid #444;
         padding-bottom: 5px;
         text-align: center;
-      }
-      .left-sidebar input[type="number"] {
-        width: 100%;
-        background: #444;
-        border: 1px solid #555;
-        color: #fff;
-        padding: 6px;
-        border-radius: 4px;
-        text-align: center;
-        box-sizing: border-box;
-      }
-
-      /* YENİ MEKANİZMA BUTON STİLLERİ */
-      .mech-label {
-        font-size: 0.85rem;
-        color: #aaa;
-        margin-bottom: 2px;
-        display: block;
-      }
-      .mech-toggle-container {
-        display: flex;
-        background-color: #333;
-        border-radius: 5px;
-        padding: 2px;
-        margin-bottom: 8px;
-        border: 1px solid #444;
-      }
-      .mech-btn {
-        flex: 1;
-        background: transparent;
-        border: none;
-        color: #888;
-        padding: 6px;
-        font-size: 0.8rem;
-        cursor: pointer;
-        border-radius: 4px;
-        transition: all 0.3s ease; /* Geçiş efekti */
-        font-weight: 500;
-      }
-      .mech-btn:hover {
-        background-color: rgba(255, 255, 255, 0.05);
-        color: #ccc;
-      }
-      .mech-btn.active {
-        background-color: #007bff;
-        color: white;
-        font-weight: bold;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
       }
 
       /* PLAY BUTONU */
@@ -473,9 +479,9 @@
 
       /* --------------------------- */
 
-      /* SAĞ PANEL - DARALTILDI */
+      /* SAĞ PANEL */
       .output-panel {
-        width: 260px; /* Daraltıldı */
+        width: 260px;
         background-color: #2d2d2d;
         padding: 10px;
         border-radius: 8px;
@@ -567,7 +573,7 @@
       />
     </div>
 
-    <h1>VEX Path Planner - Pro Editor v41</h1>
+    <h1>VEX Path Planner - Pro Editor v43</h1>
 
     <div class="top-controls">
       <div class="switch-container">
@@ -630,7 +636,7 @@
       <div class="left-sidebar">
         <h3>Robot Ayarları</h3>
 
-        <div class="setting-group">
+        <div class="setting-group-inline">
           <label>Genişlik (inç):</label>
           <input
             type="number"
@@ -640,7 +646,7 @@
           />
         </div>
 
-        <div class="setting-group">
+        <div class="setting-group-inline">
           <label>Yükseklik (inç):</label>
           <input
             type="number"
@@ -650,7 +656,7 @@
           />
         </div>
 
-        <div class="switch-container">
+        <div class="switch-container" style="justify-content: space-between">
           <span>Görünürlük:</span>
           <label class="switch">
             <input type="checkbox" id="simToggle" onchange="drawScreen()" />
@@ -660,55 +666,47 @@
 
         <h3>Mekanizma Yönleri</h3>
 
-        <label class="mech-label">Intake:</label>
-        <div class="mech-toggle-container" id="mech-intake">
+        <div class="setting-group-inline">
+          <label>Intake:</label>
           <button
-            class="mech-btn active"
-            onclick="setMech('intake', 'front', this)"
+            class="toggle-action-btn"
+            id="btn-intake"
+            onclick="toggleMech('intake', this)"
           >
             Önde
-          </button>
-          <button class="mech-btn" onclick="setMech('intake', 'back', this)">
-            Arkada
           </button>
         </div>
 
-        <label class="mech-label">Long Shooter:</label>
-        <div class="mech-toggle-container" id="mech-long">
+        <div class="setting-group-inline">
+          <label>Long Shooter:</label>
           <button
-            class="mech-btn active"
-            onclick="setMech('long', 'front', this)"
+            class="toggle-action-btn"
+            id="btn-long"
+            onclick="toggleMech('long', this)"
           >
             Önde
-          </button>
-          <button class="mech-btn" onclick="setMech('long', 'back', this)">
-            Arkada
           </button>
         </div>
 
-        <label class="mech-label">Mid Shooter:</label>
-        <div class="mech-toggle-container" id="mech-mid">
+        <div class="setting-group-inline">
+          <label>Mid Shooter:</label>
           <button
-            class="mech-btn active"
-            onclick="setMech('mid', 'front', this)"
+            class="toggle-action-btn"
+            id="btn-mid"
+            onclick="toggleMech('mid', this)"
           >
             Önde
-          </button>
-          <button class="mech-btn" onclick="setMech('mid', 'back', this)">
-            Arkada
           </button>
         </div>
 
-        <label class="mech-label">Low Shooter:</label>
-        <div class="mech-toggle-container" id="mech-low">
+        <div class="setting-group-inline">
+          <label>Low Shooter:</label>
           <button
-            class="mech-btn active"
-            onclick="setMech('low', 'front', this)"
+            class="toggle-action-btn"
+            id="btn-low"
+            onclick="toggleMech('low', this)"
           >
             Önde
-          </button>
-          <button class="mech-btn" onclick="setMech('low', 'back', this)">
-            Arkada
           </button>
         </div>
 
@@ -761,22 +759,24 @@
           </div>
 
           <div id="movementSettings">
-            <div class="setting-group">
-              <label>Nokta Hızı (0-127):</label>
+            <div class="setting-group-inline">
+              <label>Nokta Hızı:</label>
               <input
                 type="text"
                 id="pointSpeedInput"
-                class="full-width-input"
                 oninput="manualSpeedChange(this.value)"
               />
             </div>
 
-            <div class="setting-group">
+            <div class="setting-group-inline">
               <label>Hareket Yönü:</label>
-              <select id="pointDirInput" onchange="manualDirChange(this.value)">
-                <option value="fwd">İleri (Forward)</option>
-                <option value="rev">Geri (Reverse)</option>
-              </select>
+              <button
+                class="toggle-action-btn"
+                id="pointDirBtn"
+                onclick="togglePointDir(this)"
+              >
+                İleri
+              </button>
             </div>
           </div>
 
@@ -932,11 +932,12 @@
 
       const pointNameInput = document.getElementById("pointNameInput");
       const pointSpeedInput = document.getElementById("pointSpeedInput");
-      const pointDirInput = document.getElementById("pointDirInput");
+      // pointDirInput kaldırıldı, yerine buton geldi
+      const pointDirBtn = document.getElementById("pointDirBtn");
       const movementSettings = document.getElementById("movementSettings");
       const deleteBtn = document.getElementById("deleteBtn");
 
-      // MEKANİZMA DURUMU (YENİ)
+      // MEKANİZMA DURUMU
       let mechanismState = {
         intake: "front",
         long: "front",
@@ -953,7 +954,7 @@
       const OFFSET_X = 0;
       const OFFSET_Y = 0;
 
-      // HİZALAMA ALANLARI TANIMLARI
+      // HİZALAMA ALANLARI TANIMLARI (DÜZELTİLMİŞ)
       const SNAP_DEFINITIONS = [
         // Intake (Köşe 64'lüler)
         { x: 48, y: 64, w: 10, h: 10, angle: 0, type: "intake" },
@@ -967,13 +968,11 @@
         { x: 48, y: -30, w: 10, h: 10, angle: 0, type: "long" },
         { x: -48, y: -30, w: 10, h: 10, angle: 0, type: "long" },
 
-        // Mid Shooter (14, 14 Çaprazları)
+        // Mid Shooter (Sadece 14,14 ve -14,-14)
         { x: 14, y: 14, w: 10, h: 10, angle: -135, type: "mid" },
-        { x: -14, y: 14, w: 10, h: 10, angle: 135, type: "mid" }, // Hatalı yazım düzeltildi
         { x: -14, y: -14, w: 10, h: 10, angle: 45, type: "mid" },
-        { x: 14, y: -14, w: 10, h: 10, angle: -45, type: "mid" }, // Hatalı yazım düzeltildi
 
-        // Low Shooter (14, -14 Çaprazları - Yön farklı)
+        // Low Shooter (Sadece -14,14 ve 14,-14)
         { x: -14, y: 14, w: 10, h: 10, angle: 135, type: "low" },
         { x: 14, y: -14, w: 10, h: 10, angle: -45, type: "low" },
       ];
@@ -990,42 +989,71 @@
         drawScreen();
       };
 
-      // --- MEKANİZMA AYARLAMA (BUTONLAR) ---
-      function setMech(mechType, side, btnElement) {
-        saveState(); // Değişiklik öncesi kaydet
+      // --- MEKANİZMA AYARLAMA (TEK BUTON TOGGLE) ---
+      function toggleMech(mechType, btnElement) {
+        saveState();
 
-        mechanismState[mechType] = side;
+        let currentSide = mechanismState[mechType];
+        let newSide = currentSide === "front" ? "back" : "front";
 
-        // Buton stillerini güncelle
-        let parent = btnElement.parentElement;
-        let btns = parent.getElementsByClassName("mech-btn");
-        for (let b of btns) {
-          b.classList.remove("active");
-        }
-        btnElement.classList.add("active");
+        mechanismState[mechType] = newSide;
 
+        updateMechButtonVisual(btnElement, newSide);
         updateSnapZones();
       }
 
-      function updateUIForMechanisms() {
-        // Yükleme sırasında butonları doğru duruma getir
-        updateMechBtnGroup("intake", mechanismState.intake);
-        updateMechBtnGroup("long", mechanismState.long);
-        updateMechBtnGroup("mid", mechanismState.mid);
-        updateMechBtnGroup("low", mechanismState.low);
+      function updateMechButtonVisual(btn, side) {
+        if (side === "front") {
+          btn.innerText = "Önde";
+          btn.classList.remove("secondary-state");
+        } else {
+          btn.innerText = "Arkada";
+          btn.classList.add("secondary-state");
+        }
       }
 
-      function updateMechBtnGroup(type, side) {
-        let container = document.getElementById("mech-" + type);
-        if (!container) return;
-        let btns = container.getElementsByClassName("mech-btn");
-        for (let b of btns) {
-          b.classList.remove("active");
-          // "Önde" butonu mu, "Arkada" mı?
-          if (b.innerText === "Önde" && side === "front")
-            b.classList.add("active");
-          if (b.innerText === "Arkada" && side === "back")
-            b.classList.add("active");
+      function updateUIForMechanisms() {
+        // Yükleme sırasında tüm butonları güncelle
+        updateMechButtonVisual(
+          document.getElementById("btn-intake"),
+          mechanismState.intake
+        );
+        updateMechButtonVisual(
+          document.getElementById("btn-long"),
+          mechanismState.long
+        );
+        updateMechButtonVisual(
+          document.getElementById("btn-mid"),
+          mechanismState.mid
+        );
+        updateMechButtonVisual(
+          document.getElementById("btn-low"),
+          mechanismState.low
+        );
+      }
+
+      // --- NOKTA YÖNÜ DEĞİŞTİRME (TEK BUTON) ---
+      function togglePointDir(btnElement) {
+        if (selectedPointIndex !== -1 && selectedPointIndex !== 0) {
+          saveState();
+          let list = isPointMode ? rawPoints : processedPoints;
+          let currentDir = list[selectedPointIndex].dir || "fwd";
+          let newDir = currentDir === "fwd" ? "rev" : "fwd";
+
+          list[selectedPointIndex].dir = newDir;
+
+          updatePointDirButtonVisual(btnElement, newDir);
+          generateFormattedOutput(list);
+        }
+      }
+
+      function updatePointDirButtonVisual(btn, dir) {
+        if (dir === "fwd") {
+          btn.innerText = "İleri";
+          btn.classList.remove("secondary-state");
+        } else {
+          btn.innerText = "Geri";
+          btn.classList.add("secondary-state");
         }
       }
 
@@ -1050,7 +1078,6 @@
       }
 
       // --- SNAP / HİZALAMA FONKSİYONLARI ---
-
       function inchToPixel(inchX, inchY) {
         let px = inchY * PIXELS_PER_INCH + CANVAS_SIZE / 2; // Yatay
         let py = inchX * PIXELS_PER_INCH + CANVAS_SIZE / 2; // Dikey
@@ -1061,7 +1088,6 @@
         // Görünmez kalsın
       }
 
-      // Dinamik açı hesaplama
       function getAdjustedAngle(baseAngle, type) {
         let isBack = false;
         if (type === "intake" && mechanismState.intake === "back")
@@ -1124,7 +1150,7 @@
           processedPoints: JSON.parse(JSON.stringify(processedPoints)),
           selectedPointIndex: selectedPointIndex,
           isPointMode: isPointMode,
-          mechanismState: JSON.parse(JSON.stringify(mechanismState)), // Mekanizma durumunu da kaydet
+          mechanismState: JSON.parse(JSON.stringify(mechanismState)),
         };
         undoStack.push(state);
         if (undoStack.length > MAX_STACK_SIZE) undoStack.shift();
@@ -1307,7 +1333,7 @@
       function savePath() {
         let listToSave = isPointMode || isDrawing ? rawPoints : processedPoints;
         const data = {
-          version: "v41",
+          version: "v43",
           points: listToSave,
           settings: {
             isPointMode: isPointMode,
@@ -1320,7 +1346,7 @@
               show: simToggle.checked,
             },
             relativeOrigin: isRelativeOrigin,
-            mechanisms: mechanismState, // Kaydet
+            mechanisms: mechanismState,
           },
         };
 
@@ -1494,7 +1520,6 @@
           saveState();
           addRawPoint(snapped.x, snapped.y);
 
-          // EĞER OTO AÇI VARSA, SON NOKTAYA UYGULA
           if (snapped.hasAngle) {
             rawPoints[rawPoints.length - 1].customHeading = snapped.angle;
           }
@@ -1511,7 +1536,6 @@
           selectedPointIndex = -1;
           addRawPoint(snapped.x, snapped.y);
 
-          // Free draw modunda da olsa ilk nokta için uygula
           if (snapped.hasAngle) {
             rawPoints[rawPoints.length - 1].customHeading = snapped.angle;
           }
@@ -1705,7 +1729,8 @@
             deleteBtn.style.opacity = "1";
             movementSettings.style.display = "block";
             pointSpeedInput.value = p.speed || globalSpeedInput.value;
-            pointDirInput.value = p.dir || "fwd";
+            // Buton durumunu güncelle
+            updatePointDirButtonVisual(pointDirBtn, p.dir || "fwd");
           }
 
           let displayAngle = 0;
@@ -1760,12 +1785,7 @@
       }
 
       function manualDirChange(val) {
-        if (selectedPointIndex !== -1 && selectedPointIndex !== 0) {
-          saveState();
-          let list = isPointMode ? rawPoints : processedPoints;
-          list[selectedPointIndex].dir = val;
-          generateFormattedOutput(list);
-        }
+        // Bu fonksiyon artık kullanılmıyor, buton kullanılıyor
       }
 
       function manualCoordChange() {
