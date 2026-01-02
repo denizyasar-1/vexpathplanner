@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VEX Path Planner - Pro Editor v34 (Precise Hitbox)</title>
+    <title>VEX Path Planner - Pro Editor v36 (Custom Snap Zones)</title>
     <link rel="icon" href="ibb_logo_favicon.jpg" type="image/jpeg" />
     <style>
       /* GENEL SAYFA DÜZENİ */
@@ -36,15 +36,15 @@
         z-index: 100;
       }
 
-      /* 2. EKLEME: SAĞ ÜST LOGO STİLİ */
+      /* SAĞ ÜST LOGO STİLİ */
       .top-right-logo {
         position: absolute;
         top: 15px;
         right: 15px;
-        width: 60px; /* Logo boyutu */
+        width: 60px;
         height: auto;
         z-index: 100;
-        border-radius: 5px; /* Hafif yuvarlak köşeler */
+        border-radius: 5px;
       }
 
       .dropbtn {
@@ -242,7 +242,6 @@
       input:checked + .slider.pink {
         background-color: #d63384;
       }
-      /* Turuncu slider (Orijin) */
       input:checked + .slider.orange {
         background-color: #fd7e14;
       }
@@ -506,17 +505,6 @@
         margin-top: 5px;
         width: 100%;
       }
-
-      /* SAĞ ÜST LOGO */
-      .top-right-logo {
-        position: absolute;
-        top: 15px;
-        right: 15px;
-        width: 60px;
-        height: auto;
-        z-index: 100;
-        border-radius: 5px;
-      }
     </style>
   </head>
   <body>
@@ -540,7 +528,7 @@
       />
     </div>
 
-    <h1>VEX Path Planner - Pro Editor v34</h1>
+    <h1>VEX Path Planner - Pro Editor v36</h1>
 
     <div class="top-controls">
       <div class="switch-container">
@@ -864,6 +852,16 @@
       const OFFSET_X = 0;
       const OFFSET_Y = 0;
 
+      // HİZALAMA ALANLARI (SNAP ZONES - YENİ)
+      // Koordinat Sistemi: X = Dikey (Aşağı +), Y = Yatay (Sağ +) [Inç olarak]
+      // (0,0) Sahanın merkezi.
+      const SNAP_ZONES = [
+        { x: 48, y: 30, w: 10, h: 10 },
+        { x: -48, y: 30, w: 10, h: 10 },
+        { x: 48, y: -30, w: 10, h: 10 },
+        { x: -48, y: -30, w: 10, h: 10 },
+      ];
+
       let rawPoints = [];
       let processedPoints = [];
 
@@ -875,6 +873,64 @@
       bgImage.onload = function () {
         drawScreen();
       };
+
+      // --- SNAP / HİZALAMA FONKSİYONLARI ---
+
+      // İnç -> Piksel dönüşümü (Merkeze göre)
+      function inchToPixel(inchX, inchY) {
+        // X = Dikey, Y = Yatay. Canvas (0,0) sol üst.
+        let px = inchY * PIXELS_PER_INCH + CANVAS_SIZE / 2; // Yatay
+        let py = inchX * PIXELS_PER_INCH + CANVAS_SIZE / 2; // Dikey
+        return { x: px, y: py };
+      }
+
+      function drawSnapZones() {
+        ctx.save();
+        SNAP_ZONES.forEach((zone) => {
+          // Alanın merkezini piksele çevir
+          let center = inchToPixel(zone.x, zone.y);
+          let wPx = zone.w * PIXELS_PER_INCH;
+          let hPx = zone.h * PIXELS_PER_INCH;
+
+          // Sol üst köşeyi bul (çizim için)
+          let drawX = center.x - wPx / 2;
+          let drawY = center.y - hPx / 2;
+
+          ctx.fillStyle = "rgba(0, 123, 255, 0.2)"; // Saydam Mavi
+          ctx.strokeStyle = "rgba(0, 123, 255, 0.6)";
+          ctx.lineWidth = 1;
+          ctx.setLineDash([4, 2]); // Kesikli çizgi
+
+          ctx.fillRect(drawX, drawY, wPx, hPx);
+          ctx.strokeRect(drawX, drawY, wPx, hPx);
+        });
+        ctx.restore();
+      }
+
+      // Verilen mouse koordinatları (piksel) bir snap zone içinde mi?
+      // Eğer öyleyse zone merkezini döndür, değilse mouse'u döndür.
+      function getSnappedPosition(mx, my) {
+        let snappedPos = { x: mx, y: my, snapped: false };
+
+        for (let zone of SNAP_ZONES) {
+          let center = inchToPixel(zone.x, zone.y);
+          let wPx = zone.w * PIXELS_PER_INCH;
+          let hPx = zone.h * PIXELS_PER_INCH;
+
+          let left = center.x - wPx / 2;
+          let right = center.x + wPx / 2;
+          let top = center.y - hPx / 2;
+          let bottom = center.y + hPx / 2;
+
+          if (mx >= left && mx <= right && my >= top && my <= bottom) {
+            snappedPos.x = center.x;
+            snappedPos.y = center.y;
+            snappedPos.snapped = true;
+            break;
+          }
+        }
+        return snappedPos;
+      }
 
       // --- UNDO / REDO SİSTEMİ ---
       function saveState() {
@@ -1012,7 +1068,7 @@
             currentSpeed = parseInt(path[Math.floor(currentSimIndex)].speed);
 
           // Hız
-          let step = currentSpeed / 100;
+          let step = currentSpeed / 40;
 
           currentSimIndex += step;
           if (currentSimIndex >= path.length - 1) {
@@ -1058,7 +1114,7 @@
       function savePath() {
         let listToSave = isPointMode || isDrawing ? rawPoints : processedPoints;
         const data = {
-          version: "v34",
+          version: "v36",
           points: listToSave,
           settings: {
             isPointMode: isPointMode,
@@ -1167,20 +1223,19 @@
         processPath();
       }
 
-      // --- MOUSE EVENTLERİ (CANVAS - GÜNCELLENMİŞ HIT TEST) ---
+      // --- MOUSE EVENTLERİ (CANVAS - GÜNCELLENMİŞ HIT TEST + SNAP) ---
       canvas.addEventListener("mousedown", (e) => {
         const rect = canvas.getBoundingClientRect();
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;
 
-        // 1. SİMÜLASYON KUTUSUNA TIKLAMA KONTROLÜ (Döndürülmüş Dikdörtgen Testi)
+        // 1. SİMÜLASYON KUTUSUNA TIKLAMA KONTROLÜ
         if (simToggle.checked && processedPoints.length > 1) {
           let visualPath = getVisualPathPoints();
           let idx = Math.floor(currentSimIndex);
           if (idx < visualPath.length) {
-            let p = visualPath[idx]; // Robotun merkez konumu
+            let p = visualPath[idx];
 
-            // Robotun açısını bul
             let angle = 0;
             if (idx < visualPath.length - 1) {
               angle = calculateRawHeading(p, visualPath[idx + 1]);
@@ -1189,32 +1244,24 @@
             }
             if (p.dir === "rev") angle += 180;
 
-            // Robot boyutları (piksel)
             let w = parseFloat(simWidthInput.value) * PIXELS_PER_INCH;
             let h = parseFloat(simHeightInput.value) * PIXELS_PER_INCH;
 
-            // --- MATEMATİKSEL KONTROL ---
-            // Mouse noktasını robotun merkezine göre yerelleştir
             let dx = mx - p.x;
             let dy = my - p.y;
-
-            // Mouse noktasını robotun açısının tersine döndür
-            // Böylece eksenlere hizalı (axis-aligned) bir kutu gibi kontrol edebiliriz
             let rad = -angle * (Math.PI / 180);
             let localX = dx * Math.cos(rad) - dy * Math.sin(rad);
             let localY = dx * Math.sin(rad) + dy * Math.cos(rad);
 
-            // Artık düz bir dikdörtgen kontrolü yapabiliriz
-            // (Genişlik/2 ve Yükseklik/2 sınırları içinde mi?)
             if (Math.abs(localX) <= w / 2 && Math.abs(localY) <= h / 2) {
               isSimDragging = true;
               if (isPlaying) toggleAnimation();
-              return; // ÖNEMLİ: Başka hiçbir işlem yapma
+              return;
             }
           }
         }
 
-        // 2. NOKTA SEÇME VEYA OLUŞTURMA İŞLEMLERİ (Buraya sadece robot tıklanmadıysa gelinir)
+        // 2. NOKTA SEÇME
         let targetList = isPointMode || isDrawing ? rawPoints : processedPoints;
         let clickedIndex = -1;
         for (let i = targetList.length - 1; i >= 0; i--) {
@@ -1241,9 +1288,12 @@
           return;
         }
 
+        // 3. YENİ NOKTA EKLEME (SNAP ÖZELLİĞİ EKLENDİ)
+        let snapped = getSnappedPosition(mx, my);
+
         if (isPointMode) {
           saveState();
-          addRawPoint(mx, my);
+          addRawPoint(snapped.x, snapped.y);
           processPath();
           selectedPointIndex = rawPoints.length - 1;
           isDragging = true;
@@ -1254,7 +1304,7 @@
           rawPoints = [];
           processedPoints = [];
           selectedPointIndex = -1;
-          addRawPoint(mx, my);
+          addRawPoint(snapped.x, snapped.y);
           drawScreen();
         }
       });
@@ -1285,8 +1335,10 @@
           let targetList =
             isPointMode || isDrawing ? rawPoints : processedPoints;
           if (targetList[selectedPointIndex]) {
-            targetList[selectedPointIndex].x = mx;
-            targetList[selectedPointIndex].y = my;
+            let snapped = getSnappedPosition(mx, my);
+
+            targetList[selectedPointIndex].x = snapped.x;
+            targetList[selectedPointIndex].y = snapped.y;
 
             const coords = getCoordinatesInches(targetList[selectedPointIndex]);
             coordXInput.value = coords.x.toFixed(2);
@@ -1299,7 +1351,8 @@
         }
 
         if (!isPointMode && isDrawing) {
-          addRawPoint(mx, my);
+          let snapped = getSnappedPosition(mx, my);
+          addRawPoint(snapped.x, snapped.y);
           drawScreen();
         }
       });
@@ -1745,6 +1798,7 @@
           ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
         }
         drawGrid();
+        drawSnapZones(); // HİZALAMA ALANLARINI ÇİZ
         drawOriginPoint();
 
         if (isDrawing && !isPointMode) {
@@ -2035,6 +2089,5 @@
         document.execCommand("copy");
       }
     </script>
-     
   </body>
 </html>
