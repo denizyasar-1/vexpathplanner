@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VEX Path Planner - Pro Editor v50 (UI Update)</title>
+    <title>VEX Path Planner - Pro Editor v51 (Layout Fix)</title>
     <link rel="icon" href="ibb_logo_favicon.jpg" type="image/jpeg" />
     <style>
       /* GENEL SAYFA DÜZENİ */
@@ -35,8 +35,6 @@
         left: 15px;
         z-index: 100;
       }
-
-      /* SAĞ ÜST LOGO STİLİ */
       .top-right-logo {
         position: absolute;
         top: 15px;
@@ -46,7 +44,6 @@
         z-index: 100;
         border-radius: 5px;
       }
-
       .dropbtn {
         background-color: #007bff;
         color: white;
@@ -58,7 +55,6 @@
         font-weight: bold;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
       }
-
       .dropdown {
         position: relative;
         display: inline-block;
@@ -92,90 +88,83 @@
         background-color: #0056b3;
       }
 
-      /* --- YENİ FLOATING LABEL CSS (Görseldeki gibi) --- */
-      .robot-visual-row {
+      /* --- ÖZEL KUTU TASARIMI (Floating Label) --- */
+      .styled-row {
         display: flex;
         gap: 10px;
         align-items: center;
-        margin-bottom: 15px;
-        margin-top: 5px;
+        margin-bottom: 12px;
+        margin-top: 8px;
       }
-
-      .floating-group {
+      .styled-box {
         position: relative;
-        border: 1px solid #555;
-        border-radius: 6px;
+        border: 1px solid #666;
+        border-radius: 5px;
         flex: 1;
-        height: 38px;
+        height: 34px;
         display: flex;
         align-items: center;
         justify-content: center;
       }
-
-      .floating-group label {
+      .styled-box label {
         position: absolute;
         top: -9px;
         left: 10px;
-        background-color: #252526; /* Arkaplanla aynı renk */
+        background-color: #252526;
         padding: 0 4px;
         font-size: 0.75rem;
-        color: #ff9f43; /* Turuncu başlık */
+        color: #d63384; /* Pembe */
         font-weight: bold;
       }
-
-      .floating-group input {
+      .styled-box input {
         background: transparent;
         border: none;
         color: #fff;
         width: 100%;
         text-align: center;
-        font-size: 1.1rem;
+        font-size: 1rem;
         outline: none;
-        padding: 0;
+        font-family: inherit;
       }
 
-      /* Checkbox Stili */
+      /* Checkbox Stili (Visible) */
       .custom-checkbox-wrapper {
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 5px;
         cursor: pointer;
-        color: #fff;
         font-size: 0.9rem;
+        color: #fff;
       }
       .custom-checkbox {
-        width: 20px;
-        height: 20px;
+        width: 18px;
+        height: 18px;
         border: 2px solid #777;
-        border-radius: 4px;
+        border-radius: 3px;
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: 0.2s;
       }
-      /* Gizli native checkbox */
       .custom-checkbox-wrapper input {
         display: none;
       }
-
-      /* Seçili durum */
       .custom-checkbox-wrapper input:checked + .custom-checkbox {
-        border-color: #d63384; /* Pembe */
+        border-color: #d63384;
         background-color: #d63384;
       }
       .custom-checkbox-wrapper input:checked + .custom-checkbox::after {
         content: "✔";
-        font-size: 14px;
+        font-size: 12px;
         color: white;
       }
 
-      /* YAN YANA DÜZEN İÇİN CSS (FLEX) */
+      /* YAN YANA DÜZEN (Nokta Adı vb.) */
       .setting-group-inline {
         background: #333;
         padding: 8px;
         border-radius: 6px;
         display: flex;
-        justify-content: space-between; /* Yazı solda, input sağda */
+        justify-content: space-between;
         align-items: center;
         margin-bottom: 8px;
       }
@@ -183,26 +172,24 @@
         margin: 0;
         font-size: 0.85rem;
         color: #aaa;
-        white-space: nowrap; /* Yazı alt satıra geçmesin */
+        white-space: nowrap;
         margin-right: 10px;
       }
-      .setting-group-inline input[type="number"],
       .setting-group-inline input[type="text"] {
-        width: 80px !important; /* Genişliği sabitle */
+        flex: 1; /* Esnek genişlik */
+        width: auto; /* Düzeltme: Sabit genişliği iptal et */
+        min-width: 0; /* Düzeltme: Taşmayı önle */
         background: #444;
         border: 1px solid #555;
         color: #fff;
         padding: 4px;
         border-radius: 4px;
         text-align: center;
-        box-sizing: border-box;
       }
 
-      /* TOGGLE BUTON STİLİ (Tek Buton) - SOL MENÜ (PEMBE) */
-      .toggle-action-btn.mech-btn {
+      /* BUTON STİLLERİ */
+      .toggle-action-btn {
         width: 80px;
-        background-color: #d63384; /* Pembe */
-        color: white;
         border: none;
         padding: 5px;
         border-radius: 4px;
@@ -211,34 +198,30 @@
         font-weight: bold;
         transition: 0.2s;
         text-align: center;
+        color: white;
+      }
+
+      /* SOL MENÜ - MEKANİZMA BUTONLARI (PEMBE) */
+      .toggle-action-btn.mech-btn {
+        background-color: #d63384 !important;
       }
       .toggle-action-btn.mech-btn:hover {
-        background-color: #c22e76;
+        background-color: #c22e76 !important;
       }
 
-      /* TOGGLE BUTON STİLİ (Tek Buton) - SAĞ MENÜ (TURUNCU) */
-      #pointDirBtn {
-        width: 80px;
-        background-color: #fd7e14; /* Turuncu */
-        color: white;
-        border: none;
-        padding: 5px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 0.8rem;
-        font-weight: bold;
-        transition: 0.2s;
-        text-align: center;
+      /* SAĞ MENÜ - HAREKET YÖNÜ & HİZALAMA (TURUNCU) */
+      .toggle-action-btn.orange-btn {
+        background-color: #fd7e14 !important;
       }
-      #pointDirBtn:hover {
-        background-color: #e36e0e;
+      .toggle-action-btn.orange-btn:hover {
+        background-color: #e36e0e !important;
       }
 
       /* AYIRICI ÇİZGİ */
       .setting-group-separator {
         border-bottom: 1px solid #444;
         margin-bottom: 10px;
-        padding-bottom: 10px;
+        padding-bottom: 3px;
       }
 
       /* ROBOT SİMÜLASYON MENÜSÜ */
@@ -260,10 +243,10 @@
       .left-sidebar h3 {
         margin: 10px 0 5px 0;
         font-size: 0.95rem;
-        color: #fff;
+        color: #d63384;
         border-bottom: 1px solid #444;
         padding-bottom: 5px;
-        /* text-align: center;  Kaldırıldı, sola hizalı kalsın görseldeki gibi */
+        text-align: center;
       }
 
       /* PLAY BUTONU */
@@ -308,7 +291,6 @@
         z-index: 10;
         flex-shrink: 0;
       }
-
       .top-controls label {
         font-weight: bold;
         color: #fff;
@@ -329,7 +311,7 @@
         cursor: not-allowed;
       }
 
-      /* TOGGLE SWITCH */
+      /* SWITCH */
       .switch-container {
         display: flex;
         align-items: center;
@@ -399,7 +381,6 @@
         padding-bottom: 10px;
         box-sizing: border-box;
       }
-
       .canvas-wrapper {
         position: relative;
         border: 4px solid #444;
@@ -440,6 +421,7 @@
       .setting-group {
         background: #333;
         padding: 8px;
+        margin-bottom: 10px;
         border-radius: 6px;
       }
       .setting-group label {
@@ -449,26 +431,19 @@
         margin-bottom: 4px;
       }
 
-      .coord-inputs {
-        display: flex;
-        gap: 5px;
-        align-items: center;
-      }
-      .coord-inputs input {
-        width: 100%;
-        background: #222;
-        border: 1px solid #555;
-        color: #fff;
-        padding: 3px;
-        text-align: center;
-        font-family: monospace;
-      }
-
       .angle-control {
         display: flex;
         align-items: center;
         gap: 5px;
         margin-bottom: 5px;
+      }
+      .angle-control input {
+        flex: 1;
+        background: #222;
+        border: 1px solid #555;
+        color: #fff;
+        padding: 4px;
+        text-align: center;
       }
       .angle-buttons {
         display: flex;
@@ -479,23 +454,11 @@
         padding: 4px;
         font-size: 0.8rem;
         background-color: #555;
-      }
-
-      .full-width-input {
-        width: 95%;
-        background: #222;
-        border: 1px solid #555;
         color: #fff;
-        padding: 4px;
-        margin-top: 2px;
-      }
-      select {
-        width: 100%;
-        background: #222;
-        border: 1px solid #555;
-        color: #fff;
-        padding: 4px;
+        border: none;
         border-radius: 4px;
+        cursor: pointer;
+        flex: 1;
       }
 
       /* KNOB CSS */
@@ -511,9 +474,6 @@
         background-color: #222;
         border-radius: 50%;
         box-shadow: inset 0 0 10px #000;
-        display: flex;
-        justify-content: center;
-        align-items: center;
         border: 1px solid #444;
       }
       .knob-track {
@@ -523,6 +483,8 @@
         border-radius: 50%;
         border: 4px solid #444;
         box-sizing: border-box;
+        top: 7.5%;
+        left: 7.5%;
       }
       .handle-rotator {
         position: absolute;
@@ -530,11 +492,8 @@
         height: 100%;
         top: 0;
         left: 0;
-        transform-origin: center center;
         pointer-events: none;
-        transform: rotate(0deg);
       }
-
       .knob-handle {
         position: absolute;
         width: 18px;
@@ -546,11 +505,8 @@
         top: 50%;
         transform: translate(calc(-50% + 40.5px), -50%);
         cursor: grab;
-        box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
         pointer-events: auto;
-        transition: background-color 0.2s;
       }
-
       .knob-handle::after {
         content: "";
         position: absolute;
@@ -563,18 +519,11 @@
         border-bottom: 6px solid transparent;
         border-left: 8px solid #ff9f43;
       }
-
       .knob-handle:active {
         cursor: grabbing;
         background-color: #e67e22;
       }
-      .knob-handle:active::after {
-        border-left-color: #e67e22;
-      }
 
-      /* --------------------------- */
-
-      /* SAĞ PANEL */
       .output-panel {
         width: 260px;
         background-color: #2d2d2d;
@@ -587,63 +536,51 @@
         box-sizing: border-box;
         flex-shrink: 0;
       }
-      .tools-menu {
-        background: #333;
-        padding: 8px;
-        border-radius: 5px;
-        display: flex;
-        gap: 5px;
-        justify-content: space-around;
-      }
-      .tool-btn {
-        background: #444;
-        font-size: 0.8rem;
-        padding: 5px;
-      }
       textarea {
         flex-grow: 1;
         background-color: #111;
         color: #569cd6;
         border: 1px solid #555;
         padding: 8px;
-        font-family: "Consolas", "Courier New", monospace;
+        font-family: "Consolas", monospace;
         font-size: 11px;
-        white-space: pre;
         resize: none;
       }
       .btn-group {
         display: flex;
         gap: 5px;
       }
-      button {
+      .tools-menu button,
+      .btn-group button {
         padding: 8px;
         flex: 1;
-        background-color: #007bff;
-        color: white;
         border: none;
         cursor: pointer;
         border-radius: 4px;
         font-weight: bold;
-        transition: 0.2s;
+        color: white;
+        background-color: #007bff;
       }
-      button:hover {
+      .btn-group button:hover {
         background-color: #0056b3;
       }
-      button.clear {
-        background-color: #dc3545;
-      }
-      button.clear:hover {
-        background-color: #a71d2a;
-      }
-      button.undo {
+      .btn-group button.undo {
         background-color: #ffc107;
         color: #333;
+      }
+      .btn-group button.clear {
+        background-color: #dc3545;
       }
       button.delete-pt {
         background-color: #dc3545;
         color: #fff;
-        margin-top: 5px;
         width: 100%;
+        padding: 10px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+        margin-top: 10px;
       }
     </style>
   </head>
@@ -731,8 +668,8 @@
       <div class="left-sidebar">
         <h3 style="color: #fff">Robot Ayarları</h3>
 
-        <div class="robot-visual-row">
-          <div class="floating-group">
+        <div class="styled-row">
+          <div class="styled-box">
             <label>Genişlik</label>
             <input
               type="number"
@@ -741,7 +678,7 @@
               onchange="updateDimensions()"
             />
           </div>
-          <div class="floating-group">
+          <div class="styled-box">
             <label>Yükseklik</label>
             <input
               type="number"
@@ -829,27 +766,33 @@
         </div>
 
         <div id="selectionControls" style="display: none">
-          <div class="setting-group setting-group-separator">
-            <label
-              >Seçili Nokta:
-              <span
-                id="selectedIndexDisplay"
-                style="font-weight: bold; color: #fff; float: right"
-                >#0</span
-              ></label
+          <div
+            class="setting-group setting-group-separator"
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            "
+          >
+            <label style="margin: 0">Seçili Nokta:</label>
+            <span
+              id="selectedIndexDisplay"
+              style="font-weight: bold; color: #fff"
+              >#0</span
             >
           </div>
 
-          <div class="setting-group setting-group-separator">
+          <div class="setting-group-inline">
             <label>Nokta Adı:</label>
             <input
               type="text"
               id="pointNameInput"
-              class="full-width-input"
               placeholder="Örn: Halka Al"
               oninput="manualNameChange(this.value)"
             />
           </div>
+
+          <div class="setting-group-separator"></div>
 
           <div id="movementSettings">
             <div class="setting-group-inline">
@@ -857,6 +800,7 @@
               <input
                 type="text"
                 id="pointSpeedInput"
+                style="width: 80px"
                 oninput="manualSpeedChange(this.value)"
               />
             </div>
@@ -873,30 +817,34 @@
             </div>
           </div>
 
-          <div class="setting-group">
-            <label>Konum (X=Dikey, Y=Yatay):</label>
-            <div class="coord-inputs">
-              <span>X:</span>
-              <input
-                type="number"
-                id="coordXInput"
-                step="0.5"
-                onchange="manualCoordChange()"
-              />
-            </div>
-            <div class="coord-inputs" style="margin-top: 5px">
-              <span>Y:</span>
-              <input
-                type="number"
-                id="coordYInput"
-                step="0.5"
-                onchange="manualCoordChange()"
-              />
+          <div class="setting-group" style="padding-bottom: 12px">
+            <label style="margin-bottom: 8px; color: #ff9f43"
+              >Konum (X=Dikey, Y=Yatay):</label
+            >
+            <div class="styled-row" style="margin-top: 0">
+              <div class="styled-box">
+                <label>X</label>
+                <input
+                  type="number"
+                  id="coordXInput"
+                  step="0.5"
+                  onchange="manualCoordChange()"
+                />
+              </div>
+              <div class="styled-box">
+                <label>Y</label>
+                <input
+                  type="number"
+                  id="coordYInput"
+                  step="0.5"
+                  onchange="manualCoordChange()"
+                />
+              </div>
             </div>
           </div>
 
-          <div class="setting-group setting-group-separator">
-            <label>Açı (Derece):</label>
+          <div class="setting-group">
+            <label style="margin-bottom: 5px">Açı (Derece):</label>
             <div class="angle-control">
               <input
                 type="number"
@@ -908,7 +856,13 @@
               />
               <button
                 onclick="resetAngle()"
-                style="padding: 2px; font-size: 10px; width: auto; flex: 0"
+                style="
+                  width: 40px;
+                  background: #007bff;
+                  border: none;
+                  border-radius: 4px;
+                  color: #fff;
+                "
               >
                 Oto
               </button>
@@ -938,7 +892,7 @@
             </div>
           </div>
 
-          <div class="setting-group-inline">
+          <div class="setting-group-inline" style="margin-top: 10px">
             <label>Hizalama:</label>
             <button
               class="toggle-action-btn orange-btn"
@@ -962,15 +916,11 @@
       <div class="output-panel">
         <h3 style="margin: 0; color: #fff; font-size: 0.9rem">Hızlı Araçlar</h3>
         <div class="tools-menu">
-          <button class="tool-btn" onclick="mirrorPath('X')">
-            ↔ Yatay Aynala
-          </button>
-          <button class="tool-btn" onclick="mirrorPath('Y')">
-            ↕ Dikey Aynala
-          </button>
+          <button onclick="mirrorPath('X')">↔ Yatay Aynala</button>
+          <button onclick="mirrorPath('Y')">↕ Dikey Aynala</button>
         </div>
 
-        <h3 style="margin-top: 5px; color: #fff; font-size: 0.9rem">
+        <h3 style="margin-top: 15px; color: #fff; font-size: 0.9rem">
           Kod Çıktısı
         </h3>
         <textarea id="outputBox" readonly>
@@ -988,7 +938,7 @@
     </div>
 
     <script>
-      // --- DEĞİŞKENLER ---
+      // --- DEĞİŞKENLER (MANTIK DEĞİŞMEDİ) ---
       const canvas = document.getElementById("fieldCanvas");
       const ctx = canvas.getContext("2d");
       const outputBox = document.getElementById("outputBox");
@@ -1007,13 +957,11 @@
       const coordYInput = document.getElementById("coordYInput");
       const angleInput = document.getElementById("angleInput");
 
-      // Knob Değişkenleri
       const knobContainer = document.getElementById("knobContainer");
       const handleRotator = document.getElementById("handleRotator");
       const knobHandle = document.getElementById("knobHandle");
       let isKnobDragging = false;
 
-      // Robot Simülasyon Değişkenleri
       const simWidthInput = document.getElementById("simWidthInput");
       const simHeightInput = document.getElementById("simHeightInput");
       const simToggle = document.getElementById("simToggle");
@@ -1024,12 +972,10 @@
       let isPlaying = false;
       let animationFrameId = null;
 
-      // Orijin Ayarı
       const originToggle = document.getElementById("originToggle");
       const originLabel = document.getElementById("originLabel");
       let isRelativeOrigin = false;
 
-      // Undo/Redo Yığınları
       let undoStack = [];
       let redoStack = [];
       const MAX_STACK_SIZE = 50;
@@ -1040,7 +986,6 @@
       const movementSettings = document.getElementById("movementSettings");
       const deleteBtn = document.getElementById("deleteBtn");
 
-      // MEKANİZMA DURUMU
       let mechanismState = {
         intake: "front",
         long: "front",
@@ -1057,32 +1002,23 @@
       const OFFSET_X = 0;
       const OFFSET_Y = 0;
 
-      // GÜNCEL DİNAMİK ALANLAR (Variable)
       let currentSnapZones = [];
-
       let rawPoints = [];
       let processedPoints = [];
-
       let isPointMode = true;
       let isDrawing = false;
       let isDragging = false;
       let selectedPointIndex = -1;
 
       bgImage.onload = function () {
-        updateDimensions(); // İlk açılışta zonları hesapla
+        updateDimensions();
         drawScreen();
       };
 
-      // --- BOYUT DEĞİŞİNCE TETİKLENEN FONKSİYON ---
       function updateDimensions() {
-        // Snap Zone'ları yeniden hesapla
         currentSnapZones = getDynamicSnapZones();
-
-        // Mevcut noktalar bir yere yapışık mı diye kontrol edip taşı
         rawPoints.forEach((p) => {
           if (p.snapZoneId && p.snapEnabled !== false) {
-            // Snap pasif değilse taşı
-            // ID ile yeni zone'u bul
             const zone = currentSnapZones.find((z) => z.id === p.snapZoneId);
             if (zone) {
               const newPixelPos = inchToPixel(zone.x, zone.y);
@@ -1091,24 +1027,17 @@
             }
           }
         });
-
-        // Ekranı yenile
         drawScreen();
         generateFormattedOutput(isPointMode ? rawPoints : processedPoints);
       }
 
-      // --- DİNAMİK HİZALAMA ALANLARI OLUŞTURUCU (GÜNCELLENDİ: Hız Eski Haline) ---
       function getDynamicSnapZones() {
         let w = parseFloat(simWidthInput.value) || 15;
         let h = parseFloat(simHeightInput.value) || 15;
-
         let offset = (h - 15) / 2;
-
-        // Çaprazlar için oran tekrar 1:1 yapıldı (0.5 kaldırıldı)
         let diagOffset = offset;
 
         return [
-          // --- INTAKE ---
           {
             id: "intake_1",
             x: 48,
@@ -1145,8 +1074,6 @@
             angle: 180,
             type: "intake",
           },
-
-          // --- LONG SHOOTER ---
           {
             id: "long_1",
             x: 48,
@@ -1183,8 +1110,6 @@
             angle: 0,
             type: "long",
           },
-
-          // --- MID SHOOTER (14, 14 ve -14, -14) ---
           {
             id: "mid_1",
             x: 14 + diagOffset,
@@ -1203,8 +1128,6 @@
             angle: 45,
             type: "mid",
           },
-
-          // --- LOW SHOOTER (-14, 14 ve 14, -14) ---
           {
             id: "low_1",
             x: -14 - diagOffset,
@@ -1226,15 +1149,11 @@
         ];
       }
 
-      // --- MEKANİZMA AYARLAMA ---
       function toggleMech(mechType, btnElement) {
         saveState();
-
         let currentSide = mechanismState[mechType];
         let newSide = currentSide === "front" ? "back" : "front";
-
         mechanismState[mechType] = newSide;
-
         updateMechButtonVisual(btnElement, newSide);
         updateSnapZones();
       }
@@ -1266,16 +1185,13 @@
         );
       }
 
-      // --- NOKTA YÖNÜ DEĞİŞTİRME ---
       function togglePointDir(btnElement) {
         if (selectedPointIndex !== -1 && selectedPointIndex !== 0) {
           saveState();
           let list = isPointMode ? rawPoints : processedPoints;
           let currentDir = list[selectedPointIndex].dir || "fwd";
           let newDir = currentDir === "fwd" ? "rev" : "fwd";
-
           list[selectedPointIndex].dir = newDir;
-
           updatePointDirButtonVisual(btnElement, newDir);
           generateFormattedOutput(list);
         }
@@ -1284,26 +1200,19 @@
       function updatePointDirButtonVisual(btn, dir) {
         if (dir === "fwd") {
           btn.innerText = "İleri";
-          // RENK DEĞİŞTİRME KALDIRILDI (SABİT TURUNCU)
         } else {
           btn.innerText = "Geri";
-          // RENK DEĞİŞTİRME KALDIRILDI (SABİT TURUNCU)
         }
       }
 
-      // --- HİZALAMA (SNAP) BUTONU (YENİ) ---
       function togglePointSnap(btnElement) {
         if (selectedPointIndex !== -1) {
           saveState();
           let list = isPointMode ? rawPoints : processedPoints;
           let current = list[selectedPointIndex].snapEnabled;
-          // Tanımsızsa true varsay
           if (current === undefined) current = true;
-
           list[selectedPointIndex].snapEnabled = !current;
           updateSnapButtonVisual(btnElement, !current);
-
-          // Eğer PASİF yapıldıysa, ID bağını kopar
           if (!list[selectedPointIndex].snapEnabled) {
             list[selectedPointIndex].snapZoneId = null;
           }
@@ -1313,25 +1222,19 @@
       function updateSnapButtonVisual(btn, isEnabled) {
         if (isEnabled) {
           btn.innerText = "Aktif";
-          // RENK DEĞİŞTİRME KALDIRILDI (SABİT MAVİ/TURUNCU)
         } else {
           btn.innerText = "Pasif";
-          // RENK DEĞİŞTİRME KALDIRILDI (SABİT MAVİ/TURUNCU)
         }
       }
 
-      // --- MEKANİZMA GÜNCELLEME ---
       function updateSnapZones() {
         let changed = false;
         rawPoints.forEach((p) => {
-          // Nokta bir alana bağlıysa VE SNAP AKTİFSE, açısını güncelle
           if (p.snapZoneId && p.snapEnabled !== false) {
             const zone = currentSnapZones.find((z) => z.id === p.snapZoneId);
             if (zone) {
-              // Yeni mekanizma yönüne göre açıyı tekrar hesapla
               let finalAngle = getAdjustedAngle(zone.angle, zone.type);
               finalAngle = normalizeAngle(finalAngle);
-
               if (p.customHeading !== finalAngle) {
                 p.customHeading = finalAngle;
                 changed = true;
@@ -1339,7 +1242,6 @@
             }
           }
         });
-
         if (changed) {
           drawScreen();
           updateSelectionUI();
@@ -1347,16 +1249,13 @@
         }
       }
 
-      // --- SNAP / HİZALAMA FONKSİYONLARI ---
       function inchToPixel(inchX, inchY) {
-        let px = inchY * PIXELS_PER_INCH + CANVAS_SIZE / 2; // Yatay
-        let py = inchX * PIXELS_PER_INCH + CANVAS_SIZE / 2; // Dikey
+        let px = inchY * PIXELS_PER_INCH + CANVAS_SIZE / 2;
+        let py = inchX * PIXELS_PER_INCH + CANVAS_SIZE / 2;
         return { x: px, y: py };
       }
 
-      function drawSnapZones() {
-        // Görünmez kalsın
-      }
+      function drawSnapZones() {}
 
       function getAdjustedAngle(baseAngle, type) {
         let isBack = false;
@@ -1365,7 +1264,6 @@
         if (type === "long" && mechanismState.long === "back") isBack = true;
         if (type === "mid" && mechanismState.mid === "back") isBack = true;
         if (type === "low" && mechanismState.low === "back") isBack = true;
-
         if (isBack) {
           return (baseAngle + 180) % 360;
         }
@@ -1378,7 +1276,6 @@
         return angle;
       }
 
-      // Snap kontrolü - ID DÖNDÜRÜYOR ARTIK
       function getSnappedPosition(mx, my) {
         let result = {
           x: mx,
@@ -1388,26 +1285,21 @@
           hasAngle: false,
           zoneId: null,
         };
-
         if (currentSnapZones.length === 0)
           currentSnapZones = getDynamicSnapZones();
-
         for (let zone of currentSnapZones) {
           let center = inchToPixel(zone.x, zone.y);
           let wPx = zone.w * PIXELS_PER_INCH;
           let hPx = zone.h * PIXELS_PER_INCH;
-
           let left = center.x - wPx / 2;
           let right = center.x + wPx / 2;
           let top = center.y - hPx / 2;
           let bottom = center.y + hPx / 2;
-
           if (mx >= left && mx <= right && my >= top && my <= bottom) {
             result.x = center.x;
             result.y = center.y;
             result.snapped = true;
-            result.zoneId = zone.id; // ID'yi kaydet
-
+            result.zoneId = zone.id;
             if (zone.angle !== undefined) {
               let finalAngle = getAdjustedAngle(zone.angle, zone.type);
               result.angle = normalizeAngle(finalAngle);
@@ -1419,7 +1311,6 @@
         return result;
       }
 
-      // --- UNDO / REDO SİSTEMİ ---
       function saveState() {
         const state = {
           rawPoints: JSON.parse(JSON.stringify(rawPoints)),
@@ -1435,7 +1326,6 @@
 
       function undo() {
         if (undoStack.length === 0) return;
-
         const currentState = {
           rawPoints: JSON.parse(JSON.stringify(rawPoints)),
           processedPoints: JSON.parse(JSON.stringify(processedPoints)),
@@ -1444,14 +1334,12 @@
           mechanismState: JSON.parse(JSON.stringify(mechanismState)),
         };
         redoStack.push(currentState);
-
         const prevState = undoStack.pop();
         restoreState(prevState);
       }
 
       function redo() {
         if (redoStack.length === 0) return;
-
         const currentState = {
           rawPoints: JSON.parse(JSON.stringify(rawPoints)),
           processedPoints: JSON.parse(JSON.stringify(processedPoints)),
@@ -1460,7 +1348,6 @@
           mechanismState: JSON.parse(JSON.stringify(mechanismState)),
         };
         undoStack.push(currentState);
-
         const nextState = redoStack.pop();
         restoreState(nextState);
       }
@@ -1470,18 +1357,13 @@
         processedPoints = state.processedPoints;
         selectedPointIndex = state.selectedPointIndex;
         isPointMode = state.isPointMode;
-
         if (state.mechanismState) {
           mechanismState = state.mechanismState;
           updateUIForMechanisms();
         }
-
         document.getElementById("modeToggle").checked = isPointMode;
         modeLabel.innerText = isPointMode ? "Nokta Ekleme" : "Serbest Çizim";
-
-        // Geri yüklemeden sonra zone pozisyonlarını güncellemek gerekebilir
         updateDimensions();
-
         updateSelectionUI();
         drawScreen();
         generateFormattedOutput(isPointMode ? rawPoints : processedPoints);
@@ -1491,7 +1373,6 @@
         undo();
       }
 
-      // --- KLAVYE KISAYOLLARI ---
       document.addEventListener("keydown", (e) => {
         if (e.key === "Delete") {
           if (selectedPointIndex !== -1) deleteSelectedPoint();
@@ -1506,7 +1387,6 @@
         }
       });
 
-      // --- ORİJİN FONKSİYONU ---
       function toggleOrigin() {
         isRelativeOrigin = originToggle.checked;
         if (isRelativeOrigin) {
@@ -1519,7 +1399,6 @@
         generateFormattedOutput(isPointMode ? rawPoints : processedPoints);
       }
 
-      // --- SÜREKLİ GÜNCEL GENEL HIZ FONKSİYONU ---
       function updateGlobalSpeed() {
         saveState();
         let val = globalSpeedInput.value;
@@ -1532,14 +1411,12 @@
         processPath(true);
       }
 
-      // --- ANIMASYON MANTIĞI ---
       function toggleAnimation() {
         if (!simToggle.checked) {
           alert("Lütfen önce Robot Görünümünü (Göster) açın.");
           return;
         }
         if (processedPoints.length < 2) return;
-
         isPlaying = !isPlaying;
         if (isPlaying) {
           playBtn.innerHTML = "⏹ Durdur";
@@ -1558,16 +1435,12 @@
 
       function animate() {
         if (!isPlaying) return;
-
         let path = getVisualPathPoints();
         if (currentSimIndex < path.length - 1) {
           let currentSpeed = 127;
           if (path[Math.floor(currentSimIndex)].speed)
             currentSpeed = parseInt(path[Math.floor(currentSimIndex)].speed);
-
-          // Hız
           let step = currentSpeed / 40;
-
           currentSimIndex += step;
           if (currentSimIndex >= path.length - 1) {
             currentSimIndex = path.length - 1;
@@ -1580,19 +1453,16 @@
         }
       }
 
-      // --- KNOB EVENTLERİ ---
       knobHandle.addEventListener("mousedown", (e) => {
         saveState();
         isKnobDragging = true;
         e.preventDefault();
         e.stopPropagation();
       });
-
       document.addEventListener("mouseup", () => {
         isKnobDragging = false;
         isSimDragging = false;
       });
-
       document.addEventListener("mousemove", (e) => {
         if (isKnobDragging) {
           const rect = knobContainer.getBoundingClientRect();
@@ -1607,7 +1477,6 @@
           manualAngleChange(degrees, false);
         }
       });
-      // -----------------------
 
       function savePath() {
         let listToSave = isPointMode || isDrawing ? rawPoints : processedPoints;
@@ -1628,7 +1497,6 @@
             mechanisms: mechanismState,
           },
         };
-
         const jsonStr = JSON.stringify(data, null, 2);
         const blob = new Blob([jsonStr], { type: "application/json" });
         const url = URL.createObjectURL(blob);
@@ -1648,7 +1516,6 @@
         reader.onload = function (e) {
           try {
             saveState();
-
             const data = JSON.parse(e.target.result);
             if (data.points) {
               rawPoints = data.points;
@@ -1662,7 +1529,6 @@
               updateSettings();
               pointCountInput.value = data.settings.pointCount || 20;
               globalSpeedInput.value = data.settings.globalSpeed || "127";
-
               if (data.settings.robotSim) {
                 simWidthInput.value = data.settings.robotSim.width;
                 simHeightInput.value = data.settings.robotSim.height;
@@ -1672,12 +1538,12 @@
                 originToggle.checked = data.settings.relativeOrigin;
                 toggleOrigin();
               }
-              // Mekanizma ayarlarını yükle
               if (data.settings.mechanisms) {
                 mechanismState = data.settings.mechanisms;
                 updateUIForMechanisms();
               }
             }
+            updateDimensions();
             selectedPointIndex = -1;
             updateSelectionUI();
             processPath(true);
@@ -1691,11 +1557,9 @@
         input.value = "";
       }
 
-      // --- MOD YÖNETİMİ ---
       function toggleMode() {
         const toggle = document.getElementById("modeToggle");
         isPointMode = toggle.checked;
-
         if (isPointMode) {
           modeLabel.innerText = "Nokta Ekleme";
           canvas.style.cursor = "default";
@@ -1715,7 +1579,6 @@
       function clearCanvasKeepPoints() {
         drawScreen();
       }
-
       function updateSettings() {
         if (curveToggle.checked) {
           curveLabel.innerText = "Akıllı Eğri";
@@ -1727,19 +1590,16 @@
         processPath();
       }
 
-      // --- MOUSE EVENTLERİ (CANVAS) ---
       canvas.addEventListener("mousedown", (e) => {
         const rect = canvas.getBoundingClientRect();
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;
 
-        // 1. SİMÜLASYON KUTUSUNA TIKLAMA KONTROLÜ
         if (simToggle.checked && processedPoints.length > 1) {
           let visualPath = getVisualPathPoints();
           let idx = Math.floor(currentSimIndex);
           if (idx < visualPath.length) {
             let p = visualPath[idx];
-
             let angle = 0;
             if (idx < visualPath.length - 1) {
               angle = calculateRawHeading(p, visualPath[idx + 1]);
@@ -1765,7 +1625,6 @@
           }
         }
 
-        // 2. NOKTA SEÇME
         let targetList = isPointMode || isDrawing ? rawPoints : processedPoints;
         let clickedIndex = -1;
         for (let i = targetList.length - 1; i >= 0; i--) {
@@ -1792,19 +1651,14 @@
           return;
         }
 
-        // 3. YENİ NOKTA EKLEME (SNAP + OTO AÇI + ID KAYIT)
         let snapped = getSnappedPosition(mx, my);
-
         if (isPointMode) {
           saveState();
           addRawPoint(snapped.x, snapped.y);
-
           if (snapped.hasAngle) {
             rawPoints[rawPoints.length - 1].customHeading = snapped.angle;
           }
-          // SNAP ZONE ID'SİNİ KAYDET
           rawPoints[rawPoints.length - 1].snapZoneId = snapped.zoneId || null;
-
           processPath();
           selectedPointIndex = rawPoints.length - 1;
           isDragging = true;
@@ -1816,12 +1670,10 @@
           processedPoints = [];
           selectedPointIndex = -1;
           addRawPoint(snapped.x, snapped.y);
-
           if (snapped.hasAngle) {
             rawPoints[rawPoints.length - 1].customHeading = snapped.angle;
           }
           rawPoints[rawPoints.length - 1].snapZoneId = snapped.zoneId || null;
-
           drawScreen();
         }
       });
@@ -1835,7 +1687,6 @@
           let visualPath = getVisualPathPoints();
           let minDist = Infinity;
           let closestIndex = 0;
-
           for (let i = 0; i < visualPath.length; i++) {
             let d = Math.hypot(visualPath[i].x - mx, visualPath[i].y - my);
             if (d < minDist) {
@@ -1852,10 +1703,8 @@
           let targetList =
             isPointMode || isDrawing ? rawPoints : processedPoints;
           if (targetList[selectedPointIndex]) {
-            // HİZALAMA KONTROLÜ
             let isSnap = targetList[selectedPointIndex].snapEnabled;
             if (isSnap === undefined) isSnap = true;
-
             let finalX = mx;
             let finalY = my;
 
@@ -1865,10 +1714,9 @@
               finalY = snapped.y;
               targetList[selectedPointIndex].snapZoneId =
                 snapped.zoneId || null;
-
               if (snapped.hasAngle) {
                 targetList[selectedPointIndex].customHeading = snapped.angle;
-                updateSelectionUI(); // Açı değiştiği için UI güncelle
+                updateSelectionUI();
               }
             } else {
               targetList[selectedPointIndex].snapZoneId = null;
@@ -1880,7 +1728,6 @@
             const coords = getCoordinatesInches(targetList[selectedPointIndex]);
             coordXInput.value = coords.x.toFixed(2);
             coordYInput.value = coords.y.toFixed(2);
-
             drawScreen();
             if (!isDrawing) processPath(true);
           }
@@ -1890,7 +1737,6 @@
         if (!isPointMode && isDrawing) {
           let snapped = getSnappedPosition(mx, my);
           addRawPoint(snapped.x, snapped.y);
-          // Free drawda son noktaya ID atamak performansı etkilemez
           rawPoints[rawPoints.length - 1].snapZoneId = snapped.zoneId || null;
           drawScreen();
         }
@@ -1901,14 +1747,12 @@
           isDragging = false;
           if (!isDrawing) processPath(true);
         }
-
         if (!isPointMode && isDrawing) {
           isDrawing = false;
           processPath();
         }
       });
 
-      // --- NOKTA İŞLEMLERİ ---
       function addRawPoint(x, y) {
         let defaultSpeed = globalSpeedInput.value || "127";
         rawPoints.push({
@@ -1918,8 +1762,8 @@
           name: "",
           speed: defaultSpeed,
           dir: "fwd",
-          snapZoneId: null, // Varsayılan boş
-          snapEnabled: true, // Varsayılan aktif
+          snapZoneId: null,
+          snapEnabled: true,
         });
       }
 
@@ -1949,7 +1793,6 @@
           processPath(true);
         }
       }
-
       function clearCanvas() {
         saveState();
         rawPoints = [];
@@ -1964,7 +1807,6 @@
       function mirrorPath(axis) {
         if (rawPoints.length === 0) return;
         saveState();
-
         let targetList = isPointMode || isDrawing ? rawPoints : processedPoints;
         const cx = CANVAS_SIZE / 2;
         const cy = CANVAS_SIZE / 2;
@@ -1973,7 +1815,7 @@
           if (axis === "X") {
             let distFromCenter = p.x - cx;
             p.x = cx - distFromCenter;
-            p.snapZoneId = null; // Aynalama yapıldığında snap bağlantısı kopar
+            p.snapZoneId = null;
             if (p.customHeading !== null) {
               let a = p.customHeading;
               p.customHeading = 180 - a;
@@ -1983,30 +1825,26 @@
           } else if (axis === "Y") {
             let distFromCenter = p.y - cy;
             p.y = cy - distFromCenter;
-            p.snapZoneId = null; // Aynalama yapıldığında snap bağlantısı kopar
+            p.snapZoneId = null;
             if (p.customHeading !== null) {
               p.customHeading = -p.customHeading;
             }
           }
         });
-
         drawScreen();
         generateFormattedOutput(targetList);
         if (selectedPointIndex !== -1) updateSelectionUI();
       }
 
-      // --- UI GÜNCELLEME ---
       function updateSelectionUI() {
         if (selectedPointIndex !== -1) {
           noSelectionMsg.style.display = "none";
           selectionControls.style.display = "block";
-
           let list = isPointMode || isDrawing ? rawPoints : processedPoints;
           if (!list[selectedPointIndex]) {
             selectedPointIndex = -1;
             return;
           }
-
           const p = list[selectedPointIndex];
           const coords = getCoordinatesInches(p);
 
@@ -2027,11 +1865,9 @@
             deleteBtn.style.opacity = "1";
             movementSettings.style.display = "block";
             pointSpeedInput.value = p.speed || globalSpeedInput.value;
-            // Buton durumunu güncelle
             updatePointDirButtonVisual(pointDirBtn, p.dir || "fwd");
           }
 
-          // Hizalama butonu güncelle
           const snapBtn = document.getElementById("snapToggleBtn");
           let isSnap = p.snapEnabled;
           if (isSnap === undefined) isSnap = true;
@@ -2087,34 +1923,25 @@
           generateFormattedOutput(list);
         }
       }
-
-      function manualDirChange(val) {
-        // Bu fonksiyon artık kullanılmıyor, buton kullanılıyor
-      }
+      function manualDirChange(val) {}
 
       function manualCoordChange() {
         if (selectedPointIndex === -1) return;
         let list = isPointMode ? rawPoints : processedPoints;
-
         let newXInches = parseFloat(coordXInput.value);
         let newYInches = parseFloat(coordYInput.value);
         if (isNaN(newXInches) || isNaN(newYInches)) return;
-
         let originX = CANVAS_SIZE / 2;
         let originY = CANVAS_SIZE / 2;
         if (isRelativeOrigin && rawPoints.length > 0) {
           originX = rawPoints[0].x;
           originY = rawPoints[0].y;
         }
-
         let pX = newYInches * PIXELS_PER_INCH + originX;
         let pY = newXInches * PIXELS_PER_INCH + originY;
-
         list[selectedPointIndex].x = pX;
         list[selectedPointIndex].y = pY;
-        // Manuel koordinat değişikliğinde snap bağlantısını kopar
         list[selectedPointIndex].snapZoneId = null;
-
         drawScreen();
         generateFormattedOutput(list);
       }
@@ -2125,11 +1952,9 @@
           let angleVal = parseFloat(val);
           list[selectedPointIndex].customHeading = angleVal;
           angleInput.value = val;
-
           if (!isNaN(angleVal)) {
             handleRotator.style.transform = `rotate(${angleVal}deg)`;
           }
-
           drawScreen();
           generateFormattedOutput(list);
         }
@@ -2170,7 +1995,6 @@
             let desiredPoints = parseInt(pointCountInput.value) || 20;
             if (desiredPoints < 2) desiredPoints = 2;
             let defaultSpeed = globalSpeedInput.value;
-
             let totalLength = 0;
             let lengths = [0];
             for (let i = 0; i < rawPoints.length - 1; i++) {
@@ -2180,10 +2004,8 @@
               totalLength += dist;
               lengths.push(totalLength);
             }
-
             let newPoints = [];
             let step = totalLength / (desiredPoints - 1);
-
             newPoints.push({
               x: rawPoints[0].x,
               y: rawPoints[0].y,
@@ -2201,18 +2023,14 @@
                 lengths[index + 1] < targetDist
               )
                 index++;
-
               let segmentLen = lengths[index + 1] - lengths[index];
               let fraction = 0;
               if (segmentLen > 0)
                 fraction = (targetDist - lengths[index]) / segmentLen;
-
               let p1 = rawPoints[index];
               let p2 = rawPoints[index + 1];
-
               let segSpeed = p2.speed || defaultSpeed;
               let segDir = p2.dir || "fwd";
-
               newPoints.push({
                 x: p1.x + (p2.x - p1.x) * fraction,
                 y: p1.y + (p2.y - p1.y) * fraction,
@@ -2231,7 +2049,6 @@
               speed: defaultSpeed,
               dir: "fwd",
             });
-
             processedPoints = newPoints;
           }
         }
@@ -2251,7 +2068,6 @@
           let dist = Math.hypot(next.x - prev.x, next.y - prev.y);
           if (i === 0 || i === points.length - 1) dist *= 2;
           magnitude = dist * 0.5;
-
           if (points[i].customHeading !== null) {
             let rad = (points[i].customHeading * Math.PI) / 180;
             tX = Math.cos(rad) * magnitude;
@@ -2262,19 +2078,15 @@
           }
           tangents.push({ x: tX, y: tY });
         }
-
         for (let i = 0; i < points.length - 1; i++) {
           let p0 = points[i];
           let p1 = points[i + 1];
           let m0 = tangents[i];
           let m1 = tangents[i + 1];
-
           let segSpeed = p1.speed || "127";
           let segDir = p1.dir || "fwd";
-
           let distPixels = Math.hypot(p1.x - p0.x, p1.y - p0.y);
           let steps = Math.max(5, Math.floor(distPixels / 2));
-
           for (let k = 0; k <= steps; k++) {
             let t = k / steps;
             let s = t;
@@ -2286,13 +2098,7 @@
             let h4 = s3 - s2;
             let x = h1 * p0.x + h2 * m0.x + h3 * p1.x + h4 * m1.x;
             let y = h1 * p0.y + h2 * m0.y + h3 * p1.y + h4 * m1.y;
-
-            splinePoints.push({
-              x: x,
-              y: y,
-              speed: segSpeed,
-              dir: segDir,
-            });
+            splinePoints.push({ x: x, y: y, speed: segSpeed, dir: segDir });
           }
         }
         return splinePoints;
@@ -2300,7 +2106,6 @@
 
       function getVisualPathPoints() {
         if (processedPoints.length < 2) return [];
-
         if (curveToggle.checked) {
           return getHermiteSplinePoints(processedPoints, 0);
         } else {
@@ -2308,13 +2113,10 @@
           for (let i = 0; i < processedPoints.length - 1; i++) {
             let p1 = processedPoints[i];
             let p2 = processedPoints[i + 1];
-
             let segSpeed = p2.speed || "127";
             let segDir = p2.dir || "fwd";
-
             let distPixels = Math.hypot(p2.x - p1.x, p2.y - p1.y);
             let steps = Math.max(2, Math.floor(distPixels / 2));
-
             for (let k = 0; k < steps; k++) {
               let t = k / steps;
               pts.push({
@@ -2326,19 +2128,13 @@
             }
           }
           let last = processedPoints[processedPoints.length - 1];
-          pts.push({
-            x: last.x,
-            y: last.y,
-            speed: last.speed,
-            dir: last.dir,
-          });
+          pts.push({ x: last.x, y: last.y, speed: last.speed, dir: last.dir });
           return pts;
         }
       }
 
       function drawScreen() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-
         if (bgImage.complete && bgImage.naturalHeight !== 0) {
           ctx.drawImage(bgImage, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
         } else {
@@ -2346,24 +2142,20 @@
           ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
         }
         drawGrid();
-        drawSnapZones(); // HİZALAMA ALANLARINI ÇİZ
+        drawSnapZones();
         drawOriginPoint();
-
         if (isDrawing && !isPointMode) {
           drawRawPath(rawPoints, false);
         } else {
           let visualPoints = processedPoints;
           let useCurveColor = false;
-
           if (curveToggle.checked && processedPoints.length > 1) {
             visualPoints = getHermiteSplinePoints(processedPoints, 20);
             useCurveColor = true;
           }
-
           if (processedPoints.length > 0) {
             if (processedPoints.length > 1)
               drawRawPath(visualPoints, useCurveColor);
-
             for (let i = 0; i < processedPoints.length; i++) {
               let visAngle = 0;
               if (processedPoints[i].customHeading !== null) {
@@ -2389,7 +2181,6 @@
               );
             }
           }
-
           if (simToggle.checked && processedPoints.length > 1) {
             drawRobotSimulation(visualPoints, useCurveColor);
           }
@@ -2399,51 +2190,40 @@
       function drawRobotSimulation(visualPoints, isCurved) {
         let simPath = getVisualPathPoints();
         if (simPath.length < 2) return;
-
         let idx = Math.floor(currentSimIndex);
         if (idx >= simPath.length) idx = simPath.length - 1;
-
         let p = simPath[idx];
-
         let angle = 0;
         if (idx < simPath.length - 1) {
           angle = calculateRawHeading(p, simPath[idx + 1]);
         } else if (idx > 0) {
           angle = calculateRawHeading(simPath[idx - 1], p);
         }
-
         if (p.dir === "rev") {
           angle += 180;
         }
-
         let w = parseFloat(simWidthInput.value) * PIXELS_PER_INCH;
         let h = parseFloat(simHeightInput.value) * PIXELS_PER_INCH;
-
         ctx.save();
         ctx.translate(p.x, p.y);
         ctx.rotate((angle * Math.PI) / 180);
-
         ctx.fillStyle = "rgba(214, 51, 132, 0.4)";
         ctx.strokeStyle = "#d63384";
         ctx.lineWidth = 2;
-
-        ctx.fillRect(-w / 2, -h / 2, w, h);
-        ctx.strokeRect(-w / 2, -h / 2, w, h);
-
+        ctx.fillRect(-h / 2, -w / 2, h, w);
+        ctx.strokeRect(-h / 2, -w / 2, h, w);
         ctx.beginPath();
         ctx.moveTo(0, 0);
         ctx.lineTo(w / 2, 0);
         ctx.strokeStyle = "white";
         ctx.lineWidth = 3;
         ctx.stroke();
-
         ctx.beginPath();
         ctx.lineTo(w / 2, 0);
         ctx.lineTo(w / 2 - 5, -5);
         ctx.lineTo(w / 2 - 5, 5);
         ctx.fillStyle = "white";
         ctx.fill();
-
         ctx.restore();
       }
 
@@ -2458,10 +2238,8 @@
           ctx.fillStyle = isSelected
             ? "rgba(255, 159, 67, 1.0)"
             : "rgba(255, 159, 67, 0.8)";
-
         ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
         ctx.fill();
-
         if (isSelected) {
           ctx.strokeStyle = "#fff";
           ctx.lineWidth = 2;
@@ -2471,20 +2249,16 @@
           ctx.lineWidth = 1;
           ctx.stroke();
         }
-
         let rad = (headingDeg * Math.PI) / 180;
-
         ctx.beginPath();
         ctx.strokeStyle = "#fff";
         ctx.lineWidth = 2;
         ctx.moveTo(p.x, p.y);
         ctx.lineTo(p.x + Math.cos(rad) * radius, p.y + Math.sin(rad) * radius);
         ctx.stroke();
-
         if (isSelected) {
           let displayName = p.name;
           if (isStart) displayName = "Başlangıç";
-
           if (displayName && displayName.length > 0) {
             ctx.fillStyle = "#fff";
             ctx.font = "bold 12px Arial";
@@ -2497,7 +2271,6 @@
         ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
         ctx.lineWidth = 1;
         const tileSize = 24 * PIXELS_PER_INCH;
-
         for (let i = 1; i < 6; i++) {
           ctx.beginPath();
           ctx.moveTo(i * tileSize, 0);
@@ -2508,7 +2281,6 @@
           ctx.lineTo(CANVAS_SIZE, i * tileSize);
           ctx.stroke();
         }
-
         ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -2530,7 +2302,6 @@
           isRelativeOrigin && rawPoints.length > 0
             ? rawPoints[0].y
             : CANVAS_SIZE / 2;
-
         ctx.fillStyle = "yellow";
         ctx.beginPath();
         ctx.arc(ox, oy, 4, 0, Math.PI * 2);
@@ -2557,7 +2328,6 @@
         let deg = (rad * 180) / Math.PI;
         return deg;
       }
-
       function getCoordinatesInches(point) {
         let pixelX = point.x - CANVAS_SIZE / 2;
         let pixelY = point.y - CANVAS_SIZE / 2;
@@ -2572,14 +2342,11 @@
             "// Lütfen haritaya tıklayarak başlangıç noktasını (robotu) yerleştirin.";
           return;
         }
-
         let outputText = "";
-
         for (let i = 0; i < points.length; i++) {
           let currentP = points[i];
           let coords = getCoordinatesInches(currentP);
           let angleFinal = 0;
-
           if (
             currentP.customHeading !== null &&
             currentP.customHeading !== undefined
@@ -2594,11 +2361,9 @@
               }
             }
           }
-
           let xF = Math.round(coords.x * 100) / 100;
           let yF = Math.round(coords.y * 100) / 100;
           let aF = Math.round(angleFinal * 100) / 100;
-
           if (i === 0) {
             outputText += `chassis.odom_xyt_set(${xF}_in, ${yF}_in, ${aF}_deg);`;
             if (currentP.name && currentP.name.length > 0) {
@@ -2608,26 +2373,20 @@
           } else {
             let ptSpeed = currentP.speed || globalSpeedInput.value;
             let ptDir = currentP.dir || "fwd";
-
             let lineData = `{${xF}_in, ${yF}_in, ${aF}_deg, ${ptDir}, ${ptSpeed}}`;
-
             if (i > 1) outputText += "\n";
             outputText += "      " + lineData;
-
             if (i < points.length - 1) {
               outputText += ",";
             }
-
             if (currentP.name && currentP.name.length > 0) {
               outputText += ` // ${currentP.name}`;
             }
           }
         }
-
         if (points.length === 1) {
           outputText += "      // Hareket için daha fazla nokta ekleyin...\n";
         }
-
         outputText += "\n}, true);\nchassis.pid_wait();";
         outputBox.value = outputText;
       }
