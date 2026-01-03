@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VEX Path Planner - Pro Editor v45 (Dynamic Alignment)</title>
+    <title>VEX Path Planner - Pro Editor v45 (Sticky Snap Zones)</title>
     <link rel="icon" href="ibb_logo_favicon.jpg" type="image/jpeg" />
     <style>
       /* GENEL SAYFA DÜZENİ */
@@ -665,7 +665,7 @@
         </div>
 
         <div class="setting-group-inline">
-          <label>Uzunluk (inç):</label>
+          <label>Yükseklik (inç):</label>
           <input
             type="number"
             id="simHeightInput"
@@ -950,7 +950,6 @@
 
       const pointNameInput = document.getElementById("pointNameInput");
       const pointSpeedInput = document.getElementById("pointSpeedInput");
-      // pointDirInput kaldırıldı, yerine buton geldi
       const pointDirBtn = document.getElementById("pointDirBtn");
       const movementSettings = document.getElementById("movementSettings");
       const deleteBtn = document.getElementById("deleteBtn");
@@ -992,46 +991,113 @@
       function updateDimensions() {
         // Snap Zone'ları yeniden hesapla
         currentSnapZones = getDynamicSnapZones();
-        // Ekranı yenile (Robot boyutu değiştiği için)
+
+        // Mevcut noktalar bir yere yapışık mı diye kontrol edip taşı
+        rawPoints.forEach((p) => {
+          if (p.snapZoneId) {
+            // ID ile yeni zone'u bul
+            const zone = currentSnapZones.find((z) => z.id === p.snapZoneId);
+            if (zone) {
+              const newPixelPos = inchToPixel(zone.x, zone.y);
+              p.x = newPixelPos.x;
+              p.y = newPixelPos.y;
+            }
+          }
+        });
+
+        // Ekranı yenile
         drawScreen();
+        generateFormattedOutput(isPointMode ? rawPoints : processedPoints);
       }
 
-      // --- DİNAMİK HİZALAMA ALANLARI OLUŞTURUCU ---
+      // --- DİNAMİK HİZALAMA ALANLARI OLUŞTURUCU (ID EKLENDİ) ---
       function getDynamicSnapZones() {
         let w = parseFloat(simWidthInput.value) || 15;
         let h = parseFloat(simHeightInput.value) || 15;
 
-        // Robot 15'ten büyükse merkezden uzaklaş (geriye git), küçükse yaklaş.
-        // Düz kenarlar için sadece H önemli (ileri/geri).
-        let offset = (h - 15) / 2;
-
-        // Çaprazlar için hem X hem Y artmalı/azalmalı.
+        let offset = ((h - 15) / 100) * 41;
         let diagOffset = offset;
 
         return [
-          // --- INTAKE (64'lüler - Düz Kenar) ---
-          // 48, 64 (0 Derece / Sağ). Geriye gitmek Y'yi azaltmaktır.
-          { x: 48, y: 64 - offset, w: 10, h: 10, angle: 0, type: "intake" },
-          // -48, 64 (0 Derece / Sağ).
-          { x: -48, y: 64 - offset, w: 10, h: 10, angle: 0, type: "intake" },
-          // -48, -64 (180 Derece / Sol). Geriye gitmek Y'yi arttırmaktır.
-          { x: -48, y: -64 + offset, w: 10, h: 10, angle: 180, type: "intake" },
-          // 48, -64 (180 Derece / Sol).
-          { x: 48, y: -64 + offset, w: 10, h: 10, angle: 180, type: "intake" },
-
-          // --- LONG SHOOTER (30'lular - Düz Kenar) ---
-          // 48, 30 (180 Derece / Sol). Y arttır.
-          { x: 48, y: 30 + offset, w: 10, h: 10, angle: 180, type: "long" },
-          // -48, 30 (180 Derece / Sol).
-          { x: -48, y: 30 + offset, w: 10, h: 10, angle: 180, type: "long" },
-          // 48, -30 (0 Derece / Sağ). Y azalt.
-          { x: 48, y: -30 - offset, w: 10, h: 10, angle: 0, type: "long" },
-          // -48, -30 (0 Derece / Sağ).
-          { x: -48, y: -30 - offset, w: 10, h: 10, angle: 0, type: "long" },
-
-          // --- MID SHOOTER (Çaprazlar - Merkezden Dışarı) ---
-          // 14, 14 (Angle -135). Dışarı gitmek için 14'ten büyük olmalı (14 + off)
+          // --- INTAKE ---
           {
+            id: "intake_1",
+            x: 48,
+            y: 64 - offset,
+            w: 10,
+            h: 10,
+            angle: 0,
+            type: "intake",
+          },
+          {
+            id: "intake_2",
+            x: -48,
+            y: 64 - offset,
+            w: 10,
+            h: 10,
+            angle: 0,
+            type: "intake",
+          },
+          {
+            id: "intake_3",
+            x: -48,
+            y: -64 + offset,
+            w: 10,
+            h: 10,
+            angle: 180,
+            type: "intake",
+          },
+          {
+            id: "intake_4",
+            x: 48,
+            y: -64 + offset,
+            w: 10,
+            h: 10,
+            angle: 180,
+            type: "intake",
+          },
+
+          // --- LONG SHOOTER ---
+          {
+            id: "long_1",
+            x: 48,
+            y: 30 + offset,
+            w: 10,
+            h: 10,
+            angle: 180,
+            type: "long",
+          },
+          {
+            id: "long_2",
+            x: -48,
+            y: 30 + offset,
+            w: 10,
+            h: 10,
+            angle: 180,
+            type: "long",
+          },
+          {
+            id: "long_3",
+            x: 48,
+            y: -30 - offset,
+            w: 10,
+            h: 10,
+            angle: 0,
+            type: "long",
+          },
+          {
+            id: "long_4",
+            x: -48,
+            y: -30 - offset,
+            w: 10,
+            h: 10,
+            angle: 0,
+            type: "long",
+          },
+
+          // --- MID SHOOTER ---
+          {
+            id: "mid_1",
             x: 14 + diagOffset,
             y: 14 + diagOffset,
             w: 10,
@@ -1039,8 +1105,8 @@
             angle: -135,
             type: "mid",
           },
-          // -14, -14 (Angle 45). Dışarı gitmek için -14'ten küçük olmalı (-14 - off)
           {
+            id: "mid_2",
             x: -14 - diagOffset,
             y: -14 - diagOffset,
             w: 10,
@@ -1049,9 +1115,9 @@
             type: "mid",
           },
 
-          // --- LOW SHOOTER (Çaprazlar - Merkezden Dışarı) ---
-          // -14, 14 (Angle 135). X azalmalı (-), Y artmalı (+)
+          // --- LOW SHOOTER ---
           {
+            id: "low_1",
             x: -14 - diagOffset,
             y: 14 + diagOffset,
             w: 10,
@@ -1059,8 +1125,8 @@
             angle: 135,
             type: "low",
           },
-          // 14, -14 (Angle -45). X artmalı (+), Y azalmalı (-)
           {
+            id: "low_2",
             x: 14 + diagOffset,
             y: -14 - diagOffset,
             w: 10,
@@ -1071,7 +1137,7 @@
         ];
       }
 
-      // --- MEKANİZMA AYARLAMA (TEK BUTON TOGGLE) ---
+      // --- MEKANİZMA AYARLAMA ---
       function toggleMech(mechType, btnElement) {
         saveState();
 
@@ -1081,21 +1147,18 @@
         mechanismState[mechType] = newSide;
 
         updateMechButtonVisual(btnElement, newSide);
-        updateSnapZones(); // Mevcut noktaları güncelle
+        updateSnapZones();
       }
 
       function updateMechButtonVisual(btn, side) {
         if (side === "front") {
           btn.innerText = "Önde";
-          // btn.classList.remove('secondary-state'); // Pembe kalacak
         } else {
           btn.innerText = "Arkada";
-          // btn.classList.add('secondary-state'); // Pembe kalacak
         }
       }
 
       function updateUIForMechanisms() {
-        // Yükleme sırasında tüm butonları güncelle
         updateMechButtonVisual(
           document.getElementById("btn-intake"),
           mechanismState.intake
@@ -1114,7 +1177,7 @@
         );
       }
 
-      // --- NOKTA YÖNÜ DEĞİŞTİRME (TEK BUTON) ---
+      // --- NOKTA YÖNÜ DEĞİŞTİRME ---
       function togglePointDir(btnElement) {
         if (selectedPointIndex !== -1 && selectedPointIndex !== 0) {
           saveState();
@@ -1132,10 +1195,10 @@
       function updatePointDirButtonVisual(btn, dir) {
         if (dir === "fwd") {
           btn.innerText = "İleri";
-          // btn.classList.remove('secondary-state'); // Turuncu kalacak
+          btn.classList.remove("secondary-state");
         } else {
           btn.innerText = "Geri";
-          // btn.classList.add('secondary-state'); // Turuncu kalacak
+          btn.classList.add("secondary-state");
         }
       }
 
@@ -1143,11 +1206,18 @@
       function updateSnapZones() {
         let changed = false;
         rawPoints.forEach((p) => {
-          let snapped = getSnappedPosition(p.x, p.y);
-          if (snapped.snapped && snapped.hasAngle) {
-            if (p.customHeading !== snapped.angle) {
-              p.customHeading = snapped.angle;
-              changed = true;
+          // Nokta bir alana bağlıysa (snapZoneId varsa), açısını güncelle
+          if (p.snapZoneId) {
+            const zone = currentSnapZones.find((z) => z.id === p.snapZoneId);
+            if (zone) {
+              // Yeni mekanizma yönüne göre açıyı tekrar hesapla
+              let finalAngle = getAdjustedAngle(zone.angle, zone.type);
+              finalAngle = normalizeAngle(finalAngle);
+
+              if (p.customHeading !== finalAngle) {
+                p.customHeading = finalAngle;
+                changed = true;
+              }
             }
           }
         });
@@ -1190,7 +1260,7 @@
         return angle;
       }
 
-      // DİNAMİK LİSTE KULLANIYORUZ ARTIK (currentSnapZones)
+      // Snap kontrolü - ID DÖNDÜRÜYOR ARTIK
       function getSnappedPosition(mx, my) {
         let result = {
           x: mx,
@@ -1198,9 +1268,9 @@
           snapped: false,
           angle: null,
           hasAngle: false,
+          zoneId: null,
         };
 
-        // Eğer liste boşsa oluştur (güvenlik için)
         if (currentSnapZones.length === 0)
           currentSnapZones = getDynamicSnapZones();
 
@@ -1218,6 +1288,7 @@
             result.x = center.x;
             result.y = center.y;
             result.snapped = true;
+            result.zoneId = zone.id; // ID'yi kaydet
 
             if (zone.angle !== undefined) {
               let finalAngle = getAdjustedAngle(zone.angle, zone.type);
@@ -1289,6 +1360,9 @@
 
         document.getElementById("modeToggle").checked = isPointMode;
         modeLabel.innerText = isPointMode ? "Nokta Ekleme" : "Serbest Çizim";
+
+        // Geri yüklemeden sonra zone pozisyonlarını güncellemek gerekebilir
+        updateDimensions();
 
         updateSelectionUI();
         drawScreen();
@@ -1486,7 +1560,6 @@
                 updateUIForMechanisms();
               }
             }
-            // Boyutlar değişmiş olabilir, snap zone'ları güncelle
             updateDimensions();
 
             selectedPointIndex = -1;
@@ -1538,7 +1611,7 @@
         processPath();
       }
 
-      // --- MOUSE EVENTLERİ (CANVAS - GÜNCELLENMİŞ HIT TEST + SNAP) ---
+      // --- MOUSE EVENTLERİ (CANVAS) ---
       canvas.addEventListener("mousedown", (e) => {
         const rect = canvas.getBoundingClientRect();
         const mx = e.clientX - rect.left;
@@ -1603,7 +1676,7 @@
           return;
         }
 
-        // 3. YENİ NOKTA EKLEME (SNAP + OTO AÇI)
+        // 3. YENİ NOKTA EKLEME (SNAP + OTO AÇI + ID KAYIT)
         let snapped = getSnappedPosition(mx, my);
 
         if (isPointMode) {
@@ -1613,6 +1686,8 @@
           if (snapped.hasAngle) {
             rawPoints[rawPoints.length - 1].customHeading = snapped.angle;
           }
+          // SNAP ZONE ID'SİNİ KAYDET
+          rawPoints[rawPoints.length - 1].snapZoneId = snapped.zoneId || null;
 
           processPath();
           selectedPointIndex = rawPoints.length - 1;
@@ -1629,6 +1704,7 @@
           if (snapped.hasAngle) {
             rawPoints[rawPoints.length - 1].customHeading = snapped.angle;
           }
+          rawPoints[rawPoints.length - 1].snapZoneId = snapped.zoneId || null;
 
           drawScreen();
         }
@@ -1664,6 +1740,7 @@
 
             targetList[selectedPointIndex].x = snapped.x;
             targetList[selectedPointIndex].y = snapped.y;
+            targetList[selectedPointIndex].snapZoneId = snapped.zoneId || null; // Sürüklerken de güncelle
 
             if (snapped.hasAngle) {
               targetList[selectedPointIndex].customHeading = snapped.angle;
@@ -1686,6 +1763,8 @@
         if (!isPointMode && isDrawing) {
           let snapped = getSnappedPosition(mx, my);
           addRawPoint(snapped.x, snapped.y);
+          // Free drawda son noktaya ID atamak performansı etkilemez
+          rawPoints[rawPoints.length - 1].snapZoneId = snapped.zoneId || null;
           drawScreen();
         }
       });
@@ -1712,6 +1791,7 @@
           name: "",
           speed: defaultSpeed,
           dir: "fwd",
+          snapZoneId: null, // Varsayılan boş
         });
       }
 
@@ -1765,6 +1845,7 @@
           if (axis === "X") {
             let distFromCenter = p.x - cx;
             p.x = cx - distFromCenter;
+            p.snapZoneId = null; // Aynalama yapıldığında snap bağlantısı kopar
             if (p.customHeading !== null) {
               let a = p.customHeading;
               p.customHeading = 180 - a;
@@ -1774,6 +1855,7 @@
           } else if (axis === "Y") {
             let distFromCenter = p.y - cy;
             p.y = cy - distFromCenter;
+            p.snapZoneId = null; // Aynalama yapıldığında snap bağlantısı kopar
             if (p.customHeading !== null) {
               p.customHeading = -p.customHeading;
             }
@@ -1896,6 +1978,9 @@
 
         list[selectedPointIndex].x = pX;
         list[selectedPointIndex].y = pY;
+        // Manuel koordinat değişikliğinde snap bağlantısını kopar
+        list[selectedPointIndex].snapZoneId = null;
+
         drawScreen();
         generateFormattedOutput(list);
       }
@@ -2208,8 +2293,8 @@
         ctx.strokeStyle = "#d63384";
         ctx.lineWidth = 2;
 
-        ctx.fillRect(-h / 2, -w / 2, h, w);
-        ctx.strokeRect(-h / 2, -w / 2, h, w);
+        ctx.fillRect(-h / 2, -w / 2, h, w); //bunları SAKIN değiştirme
+        ctx.strokeRect(-h / 2, -w / 2, h, w); //bunları SAKIN değiştirme
 
         ctx.beginPath();
         ctx.moveTo(0, 0);
