@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VEX Path Planner - Pro Editor v44 (UI Colors & Separators)</title>
+    <title>VEX Path Planner - Pro Editor v45 (Dynamic Alignment)</title>
     <link rel="icon" href="ibb_logo_favicon.jpg" type="image/jpeg" />
     <style>
       /* GENEL SAYFA DÜZENİ */
@@ -591,7 +591,7 @@
       />
     </div>
 
-    <h1>VEX Path Planner - Pro Editor v44</h1>
+    <h1>VEX Path Planner - Pro Editor v45</h1>
 
     <div class="top-controls">
       <div class="switch-container">
@@ -660,17 +660,17 @@
             type="number"
             id="simWidthInput"
             value="15"
-            onchange="drawScreen()"
+            onchange="updateDimensions()"
           />
         </div>
 
         <div class="setting-group-inline">
-          <label>Yükseklik (inç):</label>
+          <label>Uzunluk (inç):</label>
           <input
             type="number"
             id="simHeightInput"
             value="15"
-            onchange="drawScreen()"
+            onchange="updateDimensions()"
           />
         </div>
 
@@ -972,28 +972,8 @@
       const OFFSET_X = 0;
       const OFFSET_Y = 0;
 
-      // HİZALAMA ALANLARI TANIMLARI (DÜZELTİLMİŞ)
-      const SNAP_DEFINITIONS = [
-        // Intake (Köşe 64'lüler)
-        { x: 48, y: 64, w: 10, h: 10, angle: 0, type: "intake" },
-        { x: -48, y: 64, w: 10, h: 10, angle: 0, type: "intake" },
-        { x: -48, y: -64, w: 10, h: 10, angle: 180, type: "intake" },
-        { x: 48, y: -64, w: 10, h: 10, angle: 180, type: "intake" },
-
-        // Long Shooter (Eski Köşeler 30'lular)
-        { x: 48, y: 30, w: 10, h: 10, angle: 180, type: "long" },
-        { x: -48, y: 30, w: 10, h: 10, angle: 180, type: "long" },
-        { x: 48, y: -30, w: 10, h: 10, angle: 0, type: "long" },
-        { x: -48, y: -30, w: 10, h: 10, angle: 0, type: "long" },
-
-        // Mid Shooter (Sadece 14,14 ve -14,-14)
-        { x: 14, y: 14, w: 10, h: 10, angle: -135, type: "mid" },
-        { x: -14, y: -14, w: 10, h: 10, angle: 45, type: "mid" },
-
-        // Low Shooter (Sadece -14,14 ve 14,-14)
-        { x: -14, y: 14, w: 10, h: 10, angle: 135, type: "low" },
-        { x: 14, y: -14, w: 10, h: 10, angle: -45, type: "low" },
-      ];
+      // GÜNCEL DİNAMİK ALANLAR (Variable)
+      let currentSnapZones = [];
 
       let rawPoints = [];
       let processedPoints = [];
@@ -1004,8 +984,92 @@
       let selectedPointIndex = -1;
 
       bgImage.onload = function () {
+        updateDimensions(); // İlk açılışta zonları hesapla
         drawScreen();
       };
+
+      // --- BOYUT DEĞİŞİNCE TETİKLENEN FONKSİYON ---
+      function updateDimensions() {
+        // Snap Zone'ları yeniden hesapla
+        currentSnapZones = getDynamicSnapZones();
+        // Ekranı yenile (Robot boyutu değiştiği için)
+        drawScreen();
+      }
+
+      // --- DİNAMİK HİZALAMA ALANLARI OLUŞTURUCU ---
+      function getDynamicSnapZones() {
+        let w = parseFloat(simWidthInput.value) || 15;
+        let h = parseFloat(simHeightInput.value) || 15;
+
+        // Robot 15'ten büyükse merkezden uzaklaş (geriye git), küçükse yaklaş.
+        // Düz kenarlar için sadece H önemli (ileri/geri).
+        let offset = (h - 15) / 2;
+
+        // Çaprazlar için hem X hem Y artmalı/azalmalı.
+        let diagOffset = offset;
+
+        return [
+          // --- INTAKE (64'lüler - Düz Kenar) ---
+          // 48, 64 (0 Derece / Sağ). Geriye gitmek Y'yi azaltmaktır.
+          { x: 48, y: 64 - offset, w: 10, h: 10, angle: 0, type: "intake" },
+          // -48, 64 (0 Derece / Sağ).
+          { x: -48, y: 64 - offset, w: 10, h: 10, angle: 0, type: "intake" },
+          // -48, -64 (180 Derece / Sol). Geriye gitmek Y'yi arttırmaktır.
+          { x: -48, y: -64 + offset, w: 10, h: 10, angle: 180, type: "intake" },
+          // 48, -64 (180 Derece / Sol).
+          { x: 48, y: -64 + offset, w: 10, h: 10, angle: 180, type: "intake" },
+
+          // --- LONG SHOOTER (30'lular - Düz Kenar) ---
+          // 48, 30 (180 Derece / Sol). Y arttır.
+          { x: 48, y: 30 + offset, w: 10, h: 10, angle: 180, type: "long" },
+          // -48, 30 (180 Derece / Sol).
+          { x: -48, y: 30 + offset, w: 10, h: 10, angle: 180, type: "long" },
+          // 48, -30 (0 Derece / Sağ). Y azalt.
+          { x: 48, y: -30 - offset, w: 10, h: 10, angle: 0, type: "long" },
+          // -48, -30 (0 Derece / Sağ).
+          { x: -48, y: -30 - offset, w: 10, h: 10, angle: 0, type: "long" },
+
+          // --- MID SHOOTER (Çaprazlar - Merkezden Dışarı) ---
+          // 14, 14 (Angle -135). Dışarı gitmek için 14'ten büyük olmalı (14 + off)
+          {
+            x: 14 + diagOffset,
+            y: 14 + diagOffset,
+            w: 10,
+            h: 10,
+            angle: -135,
+            type: "mid",
+          },
+          // -14, -14 (Angle 45). Dışarı gitmek için -14'ten küçük olmalı (-14 - off)
+          {
+            x: -14 - diagOffset,
+            y: -14 - diagOffset,
+            w: 10,
+            h: 10,
+            angle: 45,
+            type: "mid",
+          },
+
+          // --- LOW SHOOTER (Çaprazlar - Merkezden Dışarı) ---
+          // -14, 14 (Angle 135). X azalmalı (-), Y artmalı (+)
+          {
+            x: -14 - diagOffset,
+            y: 14 + diagOffset,
+            w: 10,
+            h: 10,
+            angle: 135,
+            type: "low",
+          },
+          // 14, -14 (Angle -45). X artmalı (+), Y azalmalı (-)
+          {
+            x: 14 + diagOffset,
+            y: -14 - diagOffset,
+            w: 10,
+            h: 10,
+            angle: -45,
+            type: "low",
+          },
+        ];
+      }
 
       // --- MEKANİZMA AYARLAMA (TEK BUTON TOGGLE) ---
       function toggleMech(mechType, btnElement) {
@@ -1017,7 +1081,7 @@
         mechanismState[mechType] = newSide;
 
         updateMechButtonVisual(btnElement, newSide);
-        updateSnapZones();
+        updateSnapZones(); // Mevcut noktaları güncelle
       }
 
       function updateMechButtonVisual(btn, side) {
@@ -1126,6 +1190,7 @@
         return angle;
       }
 
+      // DİNAMİK LİSTE KULLANIYORUZ ARTIK (currentSnapZones)
       function getSnappedPosition(mx, my) {
         let result = {
           x: mx,
@@ -1135,7 +1200,11 @@
           hasAngle: false,
         };
 
-        for (let zone of SNAP_DEFINITIONS) {
+        // Eğer liste boşsa oluştur (güvenlik için)
+        if (currentSnapZones.length === 0)
+          currentSnapZones = getDynamicSnapZones();
+
+        for (let zone of currentSnapZones) {
           let center = inchToPixel(zone.x, zone.y);
           let wPx = zone.w * PIXELS_PER_INCH;
           let hPx = zone.h * PIXELS_PER_INCH;
@@ -1351,7 +1420,7 @@
       function savePath() {
         let listToSave = isPointMode || isDrawing ? rawPoints : processedPoints;
         const data = {
-          version: "v44",
+          version: "v45",
           points: listToSave,
           settings: {
             isPointMode: isPointMode,
@@ -1417,6 +1486,9 @@
                 updateUIForMechanisms();
               }
             }
+            // Boyutlar değişmiş olabilir, snap zone'ları güncelle
+            updateDimensions();
+
             selectedPointIndex = -1;
             updateSelectionUI();
             processPath(true);
@@ -1593,7 +1665,6 @@
             targetList[selectedPointIndex].x = snapped.x;
             targetList[selectedPointIndex].y = snapped.y;
 
-            // Sürüklerken de alana girerse açıyı otomatik yap
             if (snapped.hasAngle) {
               targetList[selectedPointIndex].customHeading = snapped.angle;
             }
@@ -1605,7 +1676,6 @@
             drawScreen();
             if (!isDrawing) processPath(true);
 
-            // Eğer açı değiştiyse UI'ı güncelle (Knob dönsün diye)
             if (snapped.hasAngle) {
               updateSelectionUI();
             }
@@ -2138,8 +2208,8 @@
         ctx.strokeStyle = "#d63384";
         ctx.lineWidth = 2;
 
-        ctx.fillRect(-w / 2, -h / 2, w, h);
-        ctx.strokeRect(-w / 2, -h / 2, w, h);
+        ctx.fillRect(-h / 2, -w / 2, h, w);
+        ctx.strokeRect(-h / 2, -w / 2, h, w);
 
         ctx.beginPath();
         ctx.moveTo(0, 0);
@@ -2233,8 +2303,14 @@
       }
 
       function drawOriginPoint() {
-        const ox = CANVAS_SIZE / 2;
-        const oy = CANVAS_SIZE / 2;
+        const ox =
+          isRelativeOrigin && rawPoints.length > 0
+            ? rawPoints[0].x
+            : CANVAS_SIZE / 2;
+        const oy =
+          isRelativeOrigin && rawPoints.length > 0
+            ? rawPoints[0].y
+            : CANVAS_SIZE / 2;
 
         ctx.fillStyle = "yellow";
         ctx.beginPath();
