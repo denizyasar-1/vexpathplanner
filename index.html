@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VEX Path Planner - Pro Editor v45 (Sticky Snap Zones)</title>
+    <title>VEX Path Planner - Pro Editor v50 (UI Update)</title>
     <link rel="icon" href="ibb_logo_favicon.jpg" type="image/jpeg" />
     <style>
       /* GENEL SAYFA DÜZENİ */
@@ -90,6 +90,83 @@
       }
       .dropdown:hover .dropbtn {
         background-color: #0056b3;
+      }
+
+      /* --- YENİ FLOATING LABEL CSS (Görseldeki gibi) --- */
+      .robot-visual-row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 15px;
+        margin-top: 5px;
+      }
+
+      .floating-group {
+        position: relative;
+        border: 1px solid #555;
+        border-radius: 6px;
+        flex: 1;
+        height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .floating-group label {
+        position: absolute;
+        top: -9px;
+        left: 10px;
+        background-color: #252526; /* Arkaplanla aynı renk */
+        padding: 0 4px;
+        font-size: 0.75rem;
+        color: #ff9f43; /* Turuncu başlık */
+        font-weight: bold;
+      }
+
+      .floating-group input {
+        background: transparent;
+        border: none;
+        color: #fff;
+        width: 100%;
+        text-align: center;
+        font-size: 1.1rem;
+        outline: none;
+        padding: 0;
+      }
+
+      /* Checkbox Stili */
+      .custom-checkbox-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        color: #fff;
+        font-size: 0.9rem;
+      }
+      .custom-checkbox {
+        width: 20px;
+        height: 20px;
+        border: 2px solid #777;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: 0.2s;
+      }
+      /* Gizli native checkbox */
+      .custom-checkbox-wrapper input {
+        display: none;
+      }
+
+      /* Seçili durum */
+      .custom-checkbox-wrapper input:checked + .custom-checkbox {
+        border-color: #d63384; /* Pembe */
+        background-color: #d63384;
+      }
+      .custom-checkbox-wrapper input:checked + .custom-checkbox::after {
+        content: "✔";
+        font-size: 14px;
+        color: white;
       }
 
       /* YAN YANA DÜZEN İÇİN CSS (FLEX) */
@@ -183,10 +260,10 @@
       .left-sidebar h3 {
         margin: 10px 0 5px 0;
         font-size: 0.95rem;
-        color: #d63384;
+        color: #fff;
         border-bottom: 1px solid #444;
         padding-bottom: 5px;
-        text-align: center;
+        /* text-align: center;  Kaldırıldı, sola hizalı kalsın görseldeki gibi */
       }
 
       /* PLAY BUTONU */
@@ -591,7 +668,7 @@
       />
     </div>
 
-    <h1>VEX Path Planner - Pro Editor v45</h1>
+    <h1>VEX Path Planner - Pro Editor v50</h1>
 
     <div class="top-controls">
       <div class="switch-container">
@@ -652,33 +729,31 @@
 
     <div class="main-layout">
       <div class="left-sidebar">
-        <h3>Robot Ayarları</h3>
+        <h3 style="color: #fff">Robot Ayarları</h3>
 
-        <div class="setting-group-inline">
-          <label>Genişlik (inç):</label>
-          <input
-            type="number"
-            id="simWidthInput"
-            value="15"
-            onchange="updateDimensions()"
-          />
-        </div>
-
-        <div class="setting-group-inline">
-          <label>Yükseklik (inç):</label>
-          <input
-            type="number"
-            id="simHeightInput"
-            value="15"
-            onchange="updateDimensions()"
-          />
-        </div>
-
-        <div class="switch-container" style="justify-content: space-between">
-          <span>Görünürlük:</span>
-          <label class="switch">
+        <div class="robot-visual-row">
+          <div class="floating-group">
+            <label>Genişlik</label>
+            <input
+              type="number"
+              id="simWidthInput"
+              value="15"
+              onchange="updateDimensions()"
+            />
+          </div>
+          <div class="floating-group">
+            <label>Yükseklik</label>
+            <input
+              type="number"
+              id="simHeightInput"
+              value="15"
+              onchange="updateDimensions()"
+            />
+          </div>
+          <label class="custom-checkbox-wrapper">
             <input type="checkbox" id="simToggle" onchange="drawScreen()" />
-            <span class="slider pink"></span>
+            <span class="custom-checkbox"></span>
+            <span>Görünür</span>
           </label>
         </div>
 
@@ -789,7 +864,7 @@
             <div class="setting-group-inline">
               <label>Hareket Yönü:</label>
               <button
-                class="toggle-action-btn"
+                class="toggle-action-btn orange-btn"
                 id="pointDirBtn"
                 onclick="togglePointDir(this)"
               >
@@ -861,6 +936,17 @@
             >
               Sağ(Y+):0, Aşağı(X+):90, Yukarı:-90
             </div>
+          </div>
+
+          <div class="setting-group-inline">
+            <label>Hizalama:</label>
+            <button
+              class="toggle-action-btn orange-btn"
+              id="snapToggleBtn"
+              onclick="togglePointSnap(this)"
+            >
+              Aktif
+            </button>
           </div>
 
           <button
@@ -994,7 +1080,8 @@
 
         // Mevcut noktalar bir yere yapışık mı diye kontrol edip taşı
         rawPoints.forEach((p) => {
-          if (p.snapZoneId) {
+          if (p.snapZoneId && p.snapEnabled !== false) {
+            // Snap pasif değilse taşı
             // ID ile yeni zone'u bul
             const zone = currentSnapZones.find((z) => z.id === p.snapZoneId);
             if (zone) {
@@ -1010,13 +1097,15 @@
         generateFormattedOutput(isPointMode ? rawPoints : processedPoints);
       }
 
-      // --- DİNAMİK HİZALAMA ALANLARI OLUŞTURUCU (ID EKLENDİ) ---
+      // --- DİNAMİK HİZALAMA ALANLARI OLUŞTURUCU (GÜNCELLENDİ: Hız Eski Haline) ---
       function getDynamicSnapZones() {
         let w = parseFloat(simWidthInput.value) || 15;
         let h = parseFloat(simHeightInput.value) || 15;
 
         let offset = (h - 15) / 2;
-        let diagOffset = ((h - 15) / 100) * 35;
+
+        // Çaprazlar için oran tekrar 1:1 yapıldı (0.5 kaldırıldı)
+        let diagOffset = offset;
 
         return [
           // --- INTAKE ---
@@ -1095,7 +1184,7 @@
             type: "long",
           },
 
-          // --- MID SHOOTER ---
+          // --- MID SHOOTER (14, 14 ve -14, -14) ---
           {
             id: "mid_1",
             x: 14 + diagOffset,
@@ -1115,7 +1204,7 @@
             type: "mid",
           },
 
-          // --- LOW SHOOTER ---
+          // --- LOW SHOOTER (-14, 14 ve 14, -14) ---
           {
             id: "low_1",
             x: -14 - diagOffset,
@@ -1195,10 +1284,39 @@
       function updatePointDirButtonVisual(btn, dir) {
         if (dir === "fwd") {
           btn.innerText = "İleri";
-          btn.classList.remove("secondary-state");
+          // RENK DEĞİŞTİRME KALDIRILDI (SABİT TURUNCU)
         } else {
           btn.innerText = "Geri";
-          btn.classList.add("secondary-state");
+          // RENK DEĞİŞTİRME KALDIRILDI (SABİT TURUNCU)
+        }
+      }
+
+      // --- HİZALAMA (SNAP) BUTONU (YENİ) ---
+      function togglePointSnap(btnElement) {
+        if (selectedPointIndex !== -1) {
+          saveState();
+          let list = isPointMode ? rawPoints : processedPoints;
+          let current = list[selectedPointIndex].snapEnabled;
+          // Tanımsızsa true varsay
+          if (current === undefined) current = true;
+
+          list[selectedPointIndex].snapEnabled = !current;
+          updateSnapButtonVisual(btnElement, !current);
+
+          // Eğer PASİF yapıldıysa, ID bağını kopar
+          if (!list[selectedPointIndex].snapEnabled) {
+            list[selectedPointIndex].snapZoneId = null;
+          }
+        }
+      }
+
+      function updateSnapButtonVisual(btn, isEnabled) {
+        if (isEnabled) {
+          btn.innerText = "Aktif";
+          // RENK DEĞİŞTİRME KALDIRILDI (SABİT MAVİ/TURUNCU)
+        } else {
+          btn.innerText = "Pasif";
+          // RENK DEĞİŞTİRME KALDIRILDI (SABİT MAVİ/TURUNCU)
         }
       }
 
@@ -1206,8 +1324,8 @@
       function updateSnapZones() {
         let changed = false;
         rawPoints.forEach((p) => {
-          // Nokta bir alana bağlıysa (snapZoneId varsa), açısını güncelle
-          if (p.snapZoneId) {
+          // Nokta bir alana bağlıysa VE SNAP AKTİFSE, açısını güncelle
+          if (p.snapZoneId && p.snapEnabled !== false) {
             const zone = currentSnapZones.find((z) => z.id === p.snapZoneId);
             if (zone) {
               // Yeni mekanizma yönüne göre açıyı tekrar hesapla
@@ -1494,7 +1612,7 @@
       function savePath() {
         let listToSave = isPointMode || isDrawing ? rawPoints : processedPoints;
         const data = {
-          version: "v45",
+          version: "v50",
           points: listToSave,
           settings: {
             isPointMode: isPointMode,
@@ -1560,8 +1678,6 @@
                 updateUIForMechanisms();
               }
             }
-            updateDimensions();
-
             selectedPointIndex = -1;
             updateSelectionUI();
             processPath(true);
@@ -1736,15 +1852,30 @@
           let targetList =
             isPointMode || isDrawing ? rawPoints : processedPoints;
           if (targetList[selectedPointIndex]) {
-            let snapped = getSnappedPosition(mx, my);
+            // HİZALAMA KONTROLÜ
+            let isSnap = targetList[selectedPointIndex].snapEnabled;
+            if (isSnap === undefined) isSnap = true;
 
-            targetList[selectedPointIndex].x = snapped.x;
-            targetList[selectedPointIndex].y = snapped.y;
-            targetList[selectedPointIndex].snapZoneId = snapped.zoneId || null; // Sürüklerken de güncelle
+            let finalX = mx;
+            let finalY = my;
 
-            if (snapped.hasAngle) {
-              targetList[selectedPointIndex].customHeading = snapped.angle;
+            if (isSnap) {
+              let snapped = getSnappedPosition(mx, my);
+              finalX = snapped.x;
+              finalY = snapped.y;
+              targetList[selectedPointIndex].snapZoneId =
+                snapped.zoneId || null;
+
+              if (snapped.hasAngle) {
+                targetList[selectedPointIndex].customHeading = snapped.angle;
+                updateSelectionUI(); // Açı değiştiği için UI güncelle
+              }
+            } else {
+              targetList[selectedPointIndex].snapZoneId = null;
             }
+
+            targetList[selectedPointIndex].x = finalX;
+            targetList[selectedPointIndex].y = finalY;
 
             const coords = getCoordinatesInches(targetList[selectedPointIndex]);
             coordXInput.value = coords.x.toFixed(2);
@@ -1752,10 +1883,6 @@
 
             drawScreen();
             if (!isDrawing) processPath(true);
-
-            if (snapped.hasAngle) {
-              updateSelectionUI();
-            }
           }
           return;
         }
@@ -1792,6 +1919,7 @@
           speed: defaultSpeed,
           dir: "fwd",
           snapZoneId: null, // Varsayılan boş
+          snapEnabled: true, // Varsayılan aktif
         });
       }
 
@@ -1902,6 +2030,12 @@
             // Buton durumunu güncelle
             updatePointDirButtonVisual(pointDirBtn, p.dir || "fwd");
           }
+
+          // Hizalama butonu güncelle
+          const snapBtn = document.getElementById("snapToggleBtn");
+          let isSnap = p.snapEnabled;
+          if (isSnap === undefined) isSnap = true;
+          updateSnapButtonVisual(snapBtn, isSnap);
 
           let displayAngle = 0;
           if (p.customHeading !== null) {
@@ -2293,8 +2427,8 @@
         ctx.strokeStyle = "#d63384";
         ctx.lineWidth = 2;
 
-        ctx.fillRect(-h / 2, -w / 2, h, w); //bunları SAKIN değiştirme
-        ctx.strokeRect(-h / 2, -w / 2, h, w); //bunları SAKIN değiştirme
+        ctx.fillRect(-w / 2, -h / 2, w, h);
+        ctx.strokeRect(-w / 2, -h / 2, w, h);
 
         ctx.beginPath();
         ctx.moveTo(0, 0);
