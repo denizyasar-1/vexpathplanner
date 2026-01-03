@@ -1015,8 +1015,8 @@
         let w = parseFloat(simWidthInput.value) || 15;
         let h = parseFloat(simHeightInput.value) || 15;
 
-        let offset = ((h - 15) / 100) * 41;
-        let diagOffset = offset;
+        let offset = (h - 15) / 2;
+        let diagOffset = ((h - 15) / 100) * 35;
 
         return [
           // --- INTAKE ---
