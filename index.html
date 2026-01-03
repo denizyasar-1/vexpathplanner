@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VEX Path Planner - Pro Editor v51 (Layout Fix)</title>
+    <title>VEX Path Planner - Pro Editor v52 (Global Snap Toggle)</title>
     <link rel="icon" href="ibb_logo_favicon.jpg" type="image/jpeg" />
     <style>
       /* GENEL SAYFA DÜZENİ */
@@ -176,9 +176,9 @@
         margin-right: 10px;
       }
       .setting-group-inline input[type="text"] {
-        flex: 1; /* Esnek genişlik */
-        width: auto; /* Düzeltme: Sabit genişliği iptal et */
-        min-width: 0; /* Düzeltme: Taşmayı önle */
+        flex: 1;
+        width: auto;
+        min-width: 0;
         background: #444;
         border: 1px solid #555;
         color: #fff;
@@ -221,7 +221,7 @@
       .setting-group-separator {
         border-bottom: 1px solid #444;
         margin-bottom: 10px;
-        padding-bottom: 3px;
+        padding-bottom: 10px;
       }
 
       /* ROBOT SİMÜLASYON MENÜSÜ */
@@ -421,7 +421,6 @@
       .setting-group {
         background: #333;
         padding: 8px;
-        margin-bottom: 10px;
         border-radius: 6px;
       }
       .setting-group label {
@@ -605,7 +604,7 @@
       />
     </div>
 
-    <h1>VEX Path Planner - Pro Editor v50</h1>
+    <h1>VEX Path Planner - Pro Editor v52</h1>
 
     <div class="top-controls">
       <div class="switch-container">
@@ -740,6 +739,17 @@
           </button>
         </div>
 
+        <div class="setting-group-inline" style="margin-top: 5px">
+          <label>Genel Hizalama:</label>
+          <button
+            class="toggle-action-btn mech-btn"
+            id="globalSnapBtn"
+            onclick="toggleGlobalSnap(this)"
+          >
+            Açık
+          </button>
+        </div>
+
         <button class="play-btn" id="playBtn" onclick="toggleAnimation()">
           ▶ Oynat
         </button>
@@ -842,6 +852,8 @@
               </div>
             </div>
           </div>
+
+          <div class="setting-group-separator"></div>
 
           <div class="setting-group">
             <label style="margin-bottom: 5px">Açı (Derece):</label>
@@ -976,6 +988,9 @@
       const originLabel = document.getElementById("originLabel");
       let isRelativeOrigin = false;
 
+      // YENİ GLOBAL HİZALAMA DEĞİŞKENİ
+      let globalSnapEnabled = true;
+
       let undoStack = [];
       let redoStack = [];
       const MAX_STACK_SIZE = 50;
@@ -1015,6 +1030,16 @@
         drawScreen();
       };
 
+      // YENİ GLOBAL HİZALAMA FONKSİYONU
+      function toggleGlobalSnap(btn) {
+        globalSnapEnabled = !globalSnapEnabled;
+        if (globalSnapEnabled) {
+          btn.innerText = "Açık";
+        } else {
+          btn.innerText = "Kapalı";
+        }
+      }
+
       function updateDimensions() {
         currentSnapZones = getDynamicSnapZones();
         rawPoints.forEach((p) => {
@@ -1035,7 +1060,7 @@
         let w = parseFloat(simWidthInput.value) || 15;
         let h = parseFloat(simHeightInput.value) || 15;
         let offset = (h - 15) / 2;
-        let diagOffset = offset;
+        let diagOffset = (h - 15) / 2 / Math.sqrt(2);
 
         return [
           {
@@ -1277,6 +1302,18 @@
       }
 
       function getSnappedPosition(mx, my) {
+        // GÜNCELLENEN KISIM: GLOBAL SNAP KONTROLÜ
+        if (!globalSnapEnabled) {
+          return {
+            x: mx,
+            y: my,
+            snapped: false,
+            angle: null,
+            hasAngle: false,
+            zoneId: null,
+          };
+        }
+
         let result = {
           x: mx,
           y: my,
@@ -1737,6 +1774,7 @@
         if (!isPointMode && isDrawing) {
           let snapped = getSnappedPosition(mx, my);
           addRawPoint(snapped.x, snapped.y);
+          // Free drawda son noktaya ID atamak performansı etkilemez
           rawPoints[rawPoints.length - 1].snapZoneId = snapped.zoneId || null;
           drawScreen();
         }
