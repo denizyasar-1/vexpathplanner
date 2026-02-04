@@ -110,7 +110,7 @@
         position: absolute;
         top: -9px;
         left: 10px;
-        background-color: #252526;
+        background-color: #333;
         padding: 0 4px;
         font-size: 0.75rem;
         color: #d63384; /* Pembe */
@@ -423,6 +423,13 @@
         padding: 8px;
         border-radius: 6px;
       }
+
+      .setting-group_left {
+        background: #333;
+        padding: 8px;
+        border-radius: 6px;
+      }
+
       .setting-group label {
         display: block;
         font-size: 0.85rem;
@@ -438,7 +445,7 @@
       }
       .angle-control input {
         flex: 1;
-        background: #222;
+        background: #333;
         border: 1px solid #555;
         color: #fff;
         padding: 4px;
@@ -665,26 +672,28 @@
 
     <div class="main-layout">
       <div class="left-sidebar">
-        <h3 style="color: #fff">Robot Ayarları</h3>
+        <h3>Robot Ayarları</h3>
 
-        <div class="styled-row">
-          <div class="styled-box">
-            <label>Genişlik</label>
-            <input
-              type="number"
-              id="simWidthInput"
-              value="15"
-              onchange="updateDimensions()"
-            />
-          </div>
-          <div class="styled-box">
-            <label>Yükseklik</label>
-            <input
-              type="number"
-              id="simHeightInput"
-              value="15"
-              onchange="updateDimensions()"
-            />
+        <div class="setting-group_left">
+          <div class="styled-row">
+            <div class="styled-box">
+              <label>Genişlik</label>
+              <input
+                type="number"
+                id="simWidthInput"
+                value="15"
+                onchange="updateDimensions()"
+              />
+            </div>
+            <div class="styled-box">
+              <label>Yükseklik</label>
+              <input
+                type="number"
+                id="simHeightInput"
+                value="15"
+                onchange="updateDimensions()"
+              />
+            </div>
           </div>
           <label class="custom-checkbox-wrapper">
             <input type="checkbox" id="simToggle" onchange="drawScreen()" />
@@ -828,12 +837,10 @@
           </div>
 
           <div class="setting-group" style="padding-bottom: 12px">
-            <label style="margin-bottom: 8px; color: #ff9f43"
-              >Konum (X=Dikey, Y=Yatay):</label
-            >
+            <label style="margin-bottom: 8px">Konum:</label>
             <div class="styled-row" style="margin-top: 0">
               <div class="styled-box">
-                <label>X</label>
+                <label style="color: #ff9f43">X</label>
                 <input
                   type="number"
                   id="coordXInput"
@@ -842,7 +849,7 @@
                 />
               </div>
               <div class="styled-box">
-                <label>Y</label>
+                <label style="color: #ff9f43">Y</label>
                 <input
                   type="number"
                   id="coordYInput"
